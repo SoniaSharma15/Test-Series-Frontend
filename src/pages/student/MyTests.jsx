@@ -121,12 +121,22 @@ export default function MyTests() {
                         </p>
                       </div>
 
-                      <Link
-                        to={`/student/attempt/${testItem.test._id}`}
-                        className="flex items-center justify-center gap-2 w-full py-3.5 bg-slate-50 text-slate-700 rounded-2xl font-bold text-sm hover:bg-blue-600 hover:text-white transition-all active:scale-[0.98] shadow-inner border border-slate-100 hover:border-blue-500"
-                      >
-                        Attempt Module <ArrowRight size={16} />
-                      </Link>
+                      {testItem.alreadyAttempted ? (
+                        <button
+                          disabled
+                          className="w-full py-3.5 bg-gray-100 text-gray-400 rounded-2xl font-bold text-sm cursor-not-allowed border border-gray-200"
+                        >
+                          Already Attempted
+                        </button>
+                      ) : (
+                        <Link
+                          to={`/student/attempt/${testItem.test._id}`}
+                          className="flex items-center justify-center gap-2 w-full py-3.5 bg-slate-50 text-slate-700 rounded-2xl font-bold text-sm hover:bg-blue-600 hover:text-white transition-all active:scale-[0.98] shadow-inner border border-slate-100 hover:border-blue-500"
+                        >
+                          Attempt Module <ArrowRight size={16} />
+                        </Link>
+                      )}
+
                     </div>
                   ))}
                 </div>

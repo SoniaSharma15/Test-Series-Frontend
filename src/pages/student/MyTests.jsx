@@ -121,14 +121,6 @@ export default function MyTests() {
                         </p>
                       </div>
 
-<<<<<<< HEAD
-                      <Link
-                        to={`/student/attempt/${testItem.test._id}`}
-                        className="flex items-center justify-center gap-2 w-full py-3.5 bg-slate-50 text-slate-700 rounded-2xl font-bold text-sm hover:bg-blue-600 hover:text-white transition-all active:scale-[0.98] shadow-inner border border-slate-100 hover:border-blue-500"
-                      >
-                        Attempt Module <ArrowRight size={16} />
-                      </Link>
-=======
                       {testItem.alreadyAttempted ? (
                         <button
                           disabled
@@ -145,7 +137,6 @@ export default function MyTests() {
                         </Link>
                       )}
 
->>>>>>> 5fad2cc331d1cb15fba0ead0092413b46faa74d1
                     </div>
                   ))}
                 </div>

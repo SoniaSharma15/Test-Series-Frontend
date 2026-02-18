@@ -196,7 +196,7 @@ export default function ExamWindow() {
   // mark visited when selecting
   markQuestionAsVisited(current);
 
-  // IMPORTANT: allow empty string except null/undefined
+  // IMPORTANT: allow empty string except null/
   if (optionText === undefined || optionText === null) return;
 
   setAnswers((prev) => {
@@ -289,61 +289,105 @@ export default function ExamWindow() {
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center">
-        Initializing Secure Examination...
+      <div className="h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-lg font-semibold text-gray-700">Initializing Secure Examination...</p>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="h-screen flex items-center justify-center text-red-600">
-        {error}
+      <div className="h-screen flex items-center justify-center bg-red-50">
+        <div className="text-center">
+          <div className="text-red-500 text-6xl mb-4">⚠️</div>
+          <p className="text-xl font-semibold text-red-600">{error}</p>
+        </div>
       </div>
     );
   }
 
   const currentQuestion = questions[current];
-  const isMSQQuestion = currentQuestion?.type === "MSQ";
-  const existingAnswer = answers.find(
-    (a) => a.questionId === currentQuestion?._id
-  );
 
-  const selectedAnswer = existingAnswer?.selectedAnswer || null;
-  const selectedAnswers = Array.isArray(existingAnswer?.selectedAnswers)
-    ? existingAnswer.selectedAnswers
-    : [];
+const isMSQQuestion = currentQuestion?.type === "MSQ";
 
-  const hasPassage = currentQuestion?.passage && currentQuestion.passage.trim() !== "";
-  const isMathQuestion = !!(currentQuestion?.subject && typeof currentQuestion.subject === "string" && (currentQuestion.subject.toLowerCase().includes("math") || currentQuestion.subject.toLowerCase().includes("quantitative")));
-  const showThreePartLayout = hasPassage || isMathQuestion;
+const existingAnswer = answers.find(
+  (a) => a.questionId === currentQuestion?._id
+);
+
+const selectedAnswer = existingAnswer?.selectedAnswer || null;
+
+const selectedAnswers = Array.isArray(existingAnswer?.selectedAnswers)
+  ? existingAnswer.selectedAnswers
+  : [];
+
+/* ✅ FIRST define this */
+const isPassageQuestion = currentQuestion?.type === "PASSAGE";
+
+/* ✅ THEN use it */
+const showThreePartLayout = isPassageQuestion;
+
+/* ================= SPLIT PASSAGE + QUESTION ================= */
+const getPassageData = () => {
+  if (!isPassageQuestion || !currentQuestion?.questionText) {
+    return { passage: null, question: null };
+  }
+
+  const fullText =
+    language === "hindi"
+      ? currentQuestion.questionText?.hindi
+      : currentQuestion.questionText?.english;
+
+  if (!fullText) return { passage: null, question: null };
+
+  if (language === "hindi") {
+    const parts = fullText.split("प्रश्न:");
+    return {
+      passage: parts[0]?.replace("गद्यांश:", "").trim(),
+      question: parts[1]?.trim(),
+    };
+  }
+
+  const parts = fullText.split("Question:");
+  return {
+    passage: parts[0]?.replace("Passage:", "").trim(),
+    question: parts[1]?.trim(),
+  };
+};
+
+const { passage: extractedPassage, question: extractedQuestion } =
+  getPassageData();
+
+
 
   return (
-    <div className="fixed inset-0 w-screen h-screen flex flex-col bg-gray-100 select-none z-[9999]">
+    <div className="fixed inset-0 w-screen h-screen flex flex-col bg-gradient-to-br from-gray-100 to-gray-200 select-none z-[9999]">
 
       {/* HEADER */}
-      <div className="bg-blue-900 text-white flex justify-between items-center px-6 py-3">
-        <h1 className="font-bold text-lg">{test.name}</h1>
+      <div className="bg-gradient-to-r from-blue-800 to-blue-900 text-white flex justify-between items-center px-6 py-4 shadow-lg">
+        <h1 className="font-bold text-xl tracking-wide">{test.name}</h1>
 
         <div className="flex items-center gap-6">
           {/* Language Toggle */}
-          <div className="flex bg-white rounded overflow-hidden text-sm font-semibold">
+          <div className="flex bg-white rounded-lg overflow-hidden shadow-md text-sm font-semibold">
             <button
               onClick={() => setLanguage("english")}
-              className={`px-4 py-1 ${language === "english" ? "bg-blue-600 text-white" : "text-blue-600"}`}
+              className={`px-5 py-2 transition-colors duration-200 ${language === "english" ? "bg-blue-600 text-white" : "text-blue-600 hover:bg-blue-50"}`}
             >
               English
             </button>
             <button
               onClick={() => setLanguage("hindi")}
-              className={`px-4 py-1 ${language === "hindi" ? "bg-blue-600 text-white" : "text-blue-600"}`}
+              className={`px-5 py-2 transition-colors duration-200 ${language === "hindi" ? "bg-blue-600 text-white" : "text-blue-600 hover:bg-blue-50"}`}
             >
               हिन्दी
             </button>
           </div>
 
           {/* Timer */}
-          <div className="text-xl font-mono bg-black/30 px-4 py-1 rounded">
+          <div className="text-2xl font-mono bg-black/40 px-5 py-2 rounded-lg shadow-inner">
             {formatTime()}
           </div>
         </div>
@@ -353,20 +397,36 @@ export default function ExamWindow() {
 
         {/* PART 1: PASSAGE (conditional) */}
         {showThreePartLayout && (
-          <div className="w-1/3 bg-gray-50 border-r border-gray-200 p-6 overflow-y-auto">
-            <h3 className="font-bold mb-4">{isMathQuestion ? "Problem" : "Passage"}</h3>
-            <div className="text-sm text-gray-700">
-              {currentQuestion?.passage || "No passage available"}
+          <div className="w-1/3 bg-gradient-to-b from-gray-50 to-gray-100 border-r-2 border-gray-300 p-6 overflow-y-auto shadow-inner">
+            <h3 className="font-bold text-lg mb-4 text-gray-800 border-b-2 border-gray-300 pb-2">Passage</h3>
+            <div className="text-sm text-gray-700 leading-relaxed">
+              {extractedPassage || "No passage available"}
             </div>
           </div>
         )}
 
         {/* QUESTION SECTION */}
-        <div style={showThreePartLayout ? { width: '50%' } : { width: '75%' }}>
+        <div className={`${showThreePartLayout ? 'w-1/2' : 'w-3/4'} bg-white shadow-inner`}>
           <QuestionPanel
             current={current}
             totalQuestions={questions.length}
-            currentQuestion={currentQuestion}
+            currentQuestion={
+              isPassageQuestion
+                ? {
+                    ...currentQuestion,
+                    questionText: {
+                      english:
+                        language === "english"
+                          ? extractedQuestion
+                          : currentQuestion.questionText?.english,
+                      hindi:
+                        language === "hindi"
+                          ? extractedQuestion
+                          : currentQuestion.questionText?.hindi,
+                    },
+                  }
+                : currentQuestion
+            }
             language={language}
             selectedAnswer={selectedAnswer}
             selectedAnswers={selectedAnswers}
@@ -388,33 +448,33 @@ export default function ExamWindow() {
         </div>
 
         {/* PALETTE */}
-        <div style={showThreePartLayout ? { width: '16.666%' } : { width: '25%' }} className={`bg-gray-50 border-l p-6 overflow-y-auto`}>
-          <h3 className="font-bold mb-4">Question Palette</h3>
+        <div className={`${showThreePartLayout ? 'w-1/6' : 'w-1/4'} bg-gradient-to-b from-gray-50 to-gray-100 border-l-2 border-gray-300 p-6 overflow-y-auto shadow-inner`}>
+          <h3 className="font-bold text-lg mb-4 text-gray-800 border-b-2 border-gray-300 pb-2">Question Palette</h3>
 
           {/* Legend */}
-          <div className="mb-4 text-sm">
+          <div className="mb-6 text-sm space-y-2">
             <div className="flex items-center gap-3">
-              <span className="w-4 h-4 bg-green-500 rounded" /> <span>Answered</span>
+              <span className="w-5 h-5 bg-green-500 rounded-full shadow-sm"></span> <span className="text-gray-700">Answered</span>
             </div>
-            <div className="flex items-center gap-3 mt-2">
-              <span className="w-4 h-4 bg-red-500 rounded" /> <span>Not Answered</span>
+            <div className="flex items-center gap-3">
+              <span className="w-5 h-5 bg-red-500 rounded-full shadow-sm"></span> <span className="text-gray-700">Not Answered</span>
             </div>
-            <div className="flex items-center gap-3 mt-2">
-              <span className="w-4 h-4 bg-gray-300 rounded" /> <span>Not Visited</span>
+            <div className="flex items-center gap-3">
+              <span className="w-5 h-5 bg-gray-400 rounded-full shadow-sm"></span> <span className="text-gray-700">Not Visited</span>
             </div>
-            <div className="flex items-center gap-3 mt-2">
-              <span className="w-4 h-4 bg-purple-500 rounded" /> <span>Review</span>
+            <div className="flex items-center gap-3">
+              <span className="w-5 h-5 bg-purple-500 rounded-full shadow-sm"></span> <span className="text-gray-700">Review</span>
             </div>
           </div>
 
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-4 gap-3 mb-6">
             {questions.map((q, idx) => {
               const answered = answers.find((a) => a.questionId === q._id);
               const isVisited = visitedQuestions.has(q._id);
               const isReview = reviewQuestions.has(q._id);
               const isCurrent = current === idx;
 
-              let bg = "bg-gray-300 text-gray-800";
+              let bg = "bg-gray-400 text-gray-800";
               if (isReview) bg = "bg-purple-500 text-white";
               else if (answered) bg = "bg-green-500 text-white";
               else if (isVisited) bg = "bg-red-500 text-white";
@@ -426,7 +486,7 @@ export default function ExamWindow() {
                     markQuestionAsVisited(idx);
                     setCurrent(idx);
                   }}
-                  className={`h-12 rounded font-bold text-sm flex items-center justify-center ${bg} ${isCurrent ? "ring-2 ring-blue-600" : "hover:opacity-90"}`}
+                  className={`h-12 rounded-lg font-bold text-sm flex items-center justify-center ${bg} ${isCurrent ? "ring-4 ring-blue-600 ring-opacity-50" : "hover:opacity-90"} transition-all duration-200 shadow-md`}
                   title={`Q${idx + 1} - ${isReview ? "Review" : answered ? "Answered" : isVisited ? "Not Answered" : "Not Visited"}`}
                 >
                   {idx + 1}
@@ -435,15 +495,16 @@ export default function ExamWindow() {
             })}
           </div>
 
-          <div className="mt-6 bg-white p-3 rounded text-sm border border-gray-200">
-            <div className="flex justify-between"><span>Answered</span><strong>{answers.length}</strong></div>
-            <div className="flex justify-between mt-1"><span>Visited (no answer)</span><strong>{Math.max(0, visitedQuestions.size - answers.length)}</strong></div>
-            <div className="flex justify-between mt-1"><span>Not Visited</span><strong>{Math.max(0, questions.length - visitedQuestions.size)}</strong></div>
+          <div className="bg-white p-4 rounded-lg text-sm border border-gray-300 shadow-md mb-6">
+            <div className="flex justify-between mb-2"><span className="text-gray-700">Answered</span><strong className="text-green-600">{answers.length}</strong></div>
+            <div className="flex justify-between mb-2"><span className="text-gray-700">Visited (no answer)</span><strong className="text-red-600">{Math.max(0, visitedQuestions.size - answers.length)}</strong></div>
+            <div className="flex justify-between"><span className="text-gray-700">Not Visited</span><strong className="text-gray-600">{Math.max(0, questions.length - visitedQuestions.size)}</strong></div>
           </div>
 
           <button
             onClick={() => handleSubmit(false)}
-            className="mt-6 w-full bg-red-600 text-white py-2 rounded">
+            className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white py-3 rounded-lg font-semibold shadow-md transition-all duration-200"
+          >
             FINAL SUBMIT
           </button>
         </div>

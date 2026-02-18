@@ -95,7 +95,7 @@ useEffect(() => {
     setForm((prev) => ({
       ...prev,
       discount,
-      price: sellingPrice.toFixed(2),
+      price: Math.round(sellingPrice), // 👈 round off
     }));
   } else {
     setForm((prev) => ({

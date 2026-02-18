@@ -117,7 +117,6 @@ export default function CreateTestSeries() {
 
     try {
       const formData = new FormData();
-
       Object.keys(form).forEach((key) => {
         if (key === "features" || key === "subjects") {
           formData.append(key, JSON.stringify(form[key]));

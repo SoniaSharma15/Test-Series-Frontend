@@ -20,11 +20,15 @@ export default function ExamWindow() {
   const [showWarning, setShowWarning] = useState(false);
   const [visitedQuestions, setVisitedQuestions] = useState(new Set());
   const [reviewQuestions, setReviewQuestions] = useState(new Set());
+  
+  // Mobile UI State
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const timerRef = useRef(null);
   const heartbeatRef = useRef(null);
   const submittingRef = useRef(false);
   const examEndRef = useRef(null);
+  
   /* ================= INIT ================= */
   useEffect(() => {
     initExam();
@@ -43,7 +47,6 @@ export default function ExamWindow() {
       }
     };
 
-    // Enter fullscreen on load
     enterFullscreen();
 
     const handleFullscreenChange = () => {
@@ -128,9 +131,6 @@ export default function ExamWindow() {
     return shuffled;
   };
 
-
-
-
   /* ================= TIMER ================= */
   const startTimer = () => {
     clearInterval(timerRef.current);
@@ -149,7 +149,6 @@ export default function ExamWindow() {
       }
     }, 1000);
   };
-
 
   /* ================= HEARTBEAT ================= */
   const startHeartbeat = () => {
@@ -193,10 +192,8 @@ export default function ExamWindow() {
   const qId = questions[current]?._id;
   if (!qId) return;
   
-  // mark visited when selecting
   markQuestionAsVisited(current);
 
-  // IMPORTANT: allow empty string except null/undefined
   if (optionText === undefined || optionText === null) return;
 
   setAnswers((prev) => {
@@ -243,15 +240,12 @@ export default function ExamWindow() {
       }
     }
 
-    // MCQ
     return [
       ...prev.filter((a) => a.questionId !== qId),
       { questionId: qId, selectedAnswer: optionText },
     ];
   });
 };
-
-
 
   /* ================= SUBMIT ================= */
   const handleSubmit = async (auto = false) => {
@@ -279,186 +273,253 @@ export default function ExamWindow() {
   /* ================= TIME FORMAT ================= */
   const formatTime = () => {
     const safeTime = Math.max(0, timeLeft || 0);
-
     const minutes = Math.floor(safeTime / 60);
     const seconds = safeTime % 60;
-
     return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
   };
 
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center">
-        Initializing Secure Examination...
+      <div className="h-screen flex items-center justify-center bg-white font-sans">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-14 w-14 border-t-4 border-blue-600 border-r-transparent mx-auto mb-6"></div>
+          <p className="text-xs font-black text-slate-400 uppercase tracking-[0.3em]">Initializing Secure Exam...</p>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="h-screen flex items-center justify-center text-red-600">
-        {error}
+      <div className="h-screen flex items-center justify-center bg-slate-50 font-sans p-6">
+        <div className="text-center p-10 bg-white rounded-[2.5rem] shadow-2xl border border-rose-100 max-w-sm w-full">
+          <div className="text-rose-500 text-5xl mb-6 font-bold italic">!</div>
+          <p className="text-xl font-black text-slate-800 tracking-tight">{error}</p>
+        </div>
       </div>
     );
   }
 
   const currentQuestion = questions[current];
-  const isMSQQuestion = currentQuestion?.type === "MSQ";
-  const existingAnswer = answers.find(
-    (a) => a.questionId === currentQuestion?._id
-  );
-
+  const existingAnswer = answers.find(a => a.questionId === currentQuestion?._id);
   const selectedAnswer = existingAnswer?.selectedAnswer || null;
-  const selectedAnswers = Array.isArray(existingAnswer?.selectedAnswers)
-    ? existingAnswer.selectedAnswers
-    : [];
+  const selectedAnswers = Array.isArray(existingAnswer?.selectedAnswers) ? existingAnswer.selectedAnswers : [];
+  
+  const isPassageQuestion = currentQuestion?.type === "PASSAGE";
+  const hasImage = !!currentQuestion?.questionImage?.url;
+  
+  // LOGIC: Show split view if it's a passage OR if the question has an image
+  const showSplitView = isPassageQuestion || hasImage;
 
-  const hasPassage = currentQuestion?.passage && currentQuestion.passage.trim() !== "";
-  const isMathQuestion = !!(currentQuestion?.subject && typeof currentQuestion.subject === "string" && (currentQuestion.subject.toLowerCase().includes("math") || currentQuestion.subject.toLowerCase().includes("quantitative")));
-  const showThreePartLayout = hasPassage || isMathQuestion;
+  const getPassageData = () => {
+    if (!isPassageQuestion || !currentQuestion?.questionText) return { passage: null, question: null };
+    const fullText = language === "hindi" ? currentQuestion.questionText?.hindi : currentQuestion.questionText?.english;
+    if (!fullText) return { passage: null, question: null };
+    const separator = language === "hindi" ? "प्रश्न:" : "Question:";
+    const parts = fullText.split(separator);
+    return {
+      passage: parts[0]?.replace(/Passage:|गद्यांश:/g, "").trim(),
+      question: parts[1]?.trim(),
+    };
+  };
+
+  const { passage: extractedPassage, question: extractedQuestion } = getPassageData();
 
   return (
-    <div className="fixed inset-0 w-screen h-screen flex flex-col bg-gray-100 select-none z-[9999]">
+    <div className="fixed inset-0 w-screen h-screen flex flex-col bg-[#FDFEFF] select-none z-[9999] font-sans">
 
       {/* HEADER */}
-      <div className="bg-blue-900 text-white flex justify-between items-center px-6 py-3">
-        <h1 className="font-bold text-lg">{test.name}</h1>
+      <div className="bg-white border-b border-slate-100 flex justify-between items-center px-4 md:px-8 py-3 md:py-4 z-[60] shadow-sm">
+        <div className="flex items-center gap-3 md:gap-4">
+          <button 
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
+            className="md:hidden p-2 text-slate-500 bg-slate-50 rounded-lg"
+          >
+            {isSidebarOpen ? '✕' : '☰'}
+          </button>
+          <div className="hidden md:block h-6 w-1 bg-blue-600 rounded-full"></div>
+          <h1 className="font-black text-slate-800 text-sm md:text-lg truncate max-w-[150px] md:max-w-md">{test.name}</h1>
+        </div>
 
-        <div className="flex items-center gap-6">
-          {/* Language Toggle */}
-          <div className="flex bg-white rounded overflow-hidden text-sm font-semibold">
+        <div className="flex items-center gap-3 md:gap-10">
+          <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100 scale-90 md:scale-100">
             <button
               onClick={() => setLanguage("english")}
-              className={`px-4 py-1 ${language === "english" ? "bg-blue-600 text-white" : "text-blue-600"}`}
+              className={`px-3 md:px-5 py-1.5 rounded-lg text-[10px] md:text-xs font-black transition-all ${language === "english" ? "bg-white text-blue-600 shadow-sm" : "text-slate-400"}`}
             >
-              English
+              EN
             </button>
             <button
               onClick={() => setLanguage("hindi")}
-              className={`px-4 py-1 ${language === "hindi" ? "bg-blue-600 text-white" : "text-blue-600"}`}
+              className={`px-3 md:px-5 py-1.5 rounded-lg text-[10px] md:text-xs font-black transition-all ${language === "hindi" ? "bg-white text-blue-600 shadow-sm" : "text-slate-400"}`}
             >
-              हिन्दी
+              हि
             </button>
           </div>
 
-          {/* Timer */}
-          <div className="text-xl font-mono bg-black/30 px-4 py-1 rounded">
+          <div className={`px-4 md:px-6 py-1.5 md:py-2 rounded-xl font-mono text-lg md:text-2xl font-bold border-2 transition-all ${timeLeft < 300 ? 'bg-rose-50 border-rose-200 text-rose-600 animate-pulse' : 'bg-slate-900 border-slate-800 text-white shadow-lg shadow-slate-200'}`}>
             {formatTime()}
           </div>
         </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative">
 
-        {/* PART 1: PASSAGE (conditional) */}
-        {showThreePartLayout && (
-          <div className="w-1/3 bg-gray-50 border-r border-gray-200 p-6 overflow-y-auto">
-            <h3 className="font-bold mb-4">{isMathQuestion ? "Problem" : "Passage"}</h3>
-            <div className="text-sm text-gray-700">
-              {currentQuestion?.passage || "No passage available"}
+        {/* LEFT PANEL: Restored for Passage AND Images */}
+        {showSplitView && (
+          <div className="w-full md:w-[45%] h-full bg-white border-r border-slate-100 flex flex-col absolute md:relative z-40 transition-transform duration-300">
+            <div className="px-6 py-4 bg-slate-50/50 flex items-center justify-between border-b border-slate-100">
+              <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">
+                {isPassageQuestion ? 'Passage Reference' : 'Visual Reference'}
+              </span>
+            </div>
+            <div className="flex-1 p-6 md:p-8 overflow-y-auto custom-scrollbar flex items-center justify-center">
+              {isPassageQuestion ? (
+                <div className="text-[15px] md:text-[17px] text-slate-600 leading-[1.8] font-medium bg-blue-50/30 p-6 md:p-10 rounded-[2rem] border border-blue-100/50 italic w-full">
+                  {extractedPassage || "No passage available"}
+                </div>
+              ) : (
+                <div className="w-full h-full flex items-center justify-center p-4">
+                    <img 
+                        src={currentQuestion.questionImage.url} 
+                        alt="Question Figure" 
+                        className="max-w-full max-h-full object-contain rounded-2xl shadow-xl border border-slate-100 p-2 bg-white"
+                    />
+                </div>
+              )}
             </div>
           </div>
         )}
 
-        {/* QUESTION SECTION */}
-        <div style={showThreePartLayout ? { width: '50%' } : { width: '75%' }}>
-          <QuestionPanel
-            current={current}
-            totalQuestions={questions.length}
-            currentQuestion={currentQuestion}
-            language={language}
-            selectedAnswer={selectedAnswer}
-            selectedAnswers={selectedAnswers}
-            onSelectOption={selectOption}
-            onPrevious={() => {
-              markQuestionAsVisited(current);
-              setCurrent((c) => Math.max(0, c - 1));
-            }}
-            onNext={() => {
-              markQuestionAsVisited(current);
-              setCurrent((c) => Math.min(questions.length - 1, c + 1));
-            }}
-            onSubmit={() => handleSubmit(false)}
-            onToggleReview={() => toggleReviewForQuestion(current)}
-            onClear={() => clearAnswerForQuestion(current)}
-            isReviewed={reviewQuestions.has(currentQuestion?._id)}
-            hideHeader={showThreePartLayout}
-          />
+        {/* QUESTION CONTENT */}
+        <div className={`flex-1 bg-white overflow-y-auto custom-scrollbar z-30`}>
+          <div className="max-w-5xl mx-auto h-full">
+            <QuestionPanel
+              current={current}
+              totalQuestions={questions.length}
+              currentQuestion={
+                isPassageQuestion
+                  ? {
+                      ...currentQuestion,
+                      questionText: {
+                        english: language === "english" ? extractedQuestion : currentQuestion.questionText?.english,
+                        hindi: language === "hindi" ? extractedQuestion : currentQuestion.questionText?.hindi,
+                      },
+                    }
+                  : {
+                      ...currentQuestion,
+                      // Hide the image inside QuestionPanel if we are showing it in the split window
+                      questionImage: showSplitView ? null : currentQuestion.questionImage
+                    }
+              }
+              language={language}
+              selectedAnswer={selectedAnswer}
+              selectedAnswers={selectedAnswers}
+              onSelectOption={selectOption}
+              onPrevious={() => {
+                markQuestionAsVisited(current);
+                setCurrent((c) => Math.max(0, c - 1));
+              }}
+              onNext={() => {
+                markQuestionAsVisited(current);
+                setCurrent((c) => Math.min(questions.length - 1, c + 1));
+              }}
+              onSubmit={() => handleSubmit(false)}
+              onToggleReview={() => toggleReviewForQuestion(current)}
+              onClear={() => clearAnswerForQuestion(current)}
+              isReviewed={reviewQuestions.has(currentQuestion?._id)}
+              hideHeader={showSplitView}
+            />
+          </div>
         </div>
 
         {/* PALETTE */}
-        <div style={showThreePartLayout ? { width: '16.666%' } : { width: '25%' }} className={`bg-gray-50 border-l p-6 overflow-y-auto`}>
-          <h3 className="font-bold mb-4">Question Palette</h3>
+        <div className={`
+          ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'} 
+          md:translate-x-0 fixed md:relative right-0 top-0 bottom-0 
+          w-[280px] md:w-80 bg-[#FBFCFE] border-l border-slate-100 
+          flex flex-col z-[55] transition-transform duration-300
+          shadow-[-10px_0_30px_rgba(0,0,0,0.02)]
+        `}>
+          <div className="p-6 flex-1 overflow-y-auto custom-scrollbar">
+            <h3 className="font-black text-[10px] text-slate-400 uppercase tracking-[0.3em] mb-8">Navigation</h3>
 
-          {/* Legend */}
-          <div className="mb-4 text-sm">
-            <div className="flex items-center gap-3">
-              <span className="w-4 h-4 bg-green-500 rounded" /> <span>Answered</span>
+            <div className="grid grid-cols-2 gap-3 mb-8">
+              <div className="flex items-center gap-2 p-2 bg-white rounded-lg border border-slate-50">
+                <span className="w-2.5 h-2.5 bg-green-500 rounded-full"></span> 
+                <span className="text-[10px] font-black text-slate-500 uppercase">Solved</span>
+              </div>
+              <div className="flex items-center gap-2 p-2 bg-white rounded-lg border border-slate-50">
+                <span className="w-2.5 h-2.5 bg-rose-500 rounded-full"></span> 
+                <span className="text-[10px] font-black text-slate-500 uppercase">Missed</span>
+              </div>
+              <div className="flex items-center gap-2 p-2 bg-white rounded-lg border border-slate-50">
+                <span className="w-2.5 h-2.5 bg-purple-500 rounded-full"></span> 
+                <span className="text-[10px] font-black text-slate-500 uppercase">Review</span>
+              </div>
+              <div className="flex items-center gap-2 p-2 bg-white rounded-lg border border-slate-50">
+                <span className="w-2.5 h-2.5 bg-slate-300 rounded-full"></span> 
+                <span className="text-[10px] font-black text-slate-500 uppercase">New</span>
+              </div>
             </div>
-            <div className="flex items-center gap-3 mt-2">
-              <span className="w-4 h-4 bg-red-500 rounded" /> <span>Not Answered</span>
+
+            <div className="grid grid-cols-4 gap-3 mb-8">
+              {questions.map((q, idx) => {
+                const answered = answers.find(a => a.questionId === q._id);
+                const isVisited = visitedQuestions.has(q._id);
+                const isReview = reviewQuestions.has(q._id);
+                const isCurrent = current === idx;
+
+                let bg = "bg-slate-100 text-slate-400";
+                if (isReview) bg = "bg-purple-600 text-white shadow-lg shadow-purple-100";
+                else if (answered) bg = "bg-green-600 text-white shadow-lg shadow-green-100";
+                else if (isVisited) bg = "bg-rose-500 text-white shadow-lg shadow-rose-100";
+
+                return (
+                  <button
+                    key={q._id}
+                    onClick={() => {
+                      markQuestionAsVisited(idx);
+                      setCurrent(idx);
+                      if(window.innerWidth < 768) setIsSidebarOpen(false);
+                    }}
+                    className={`h-11 rounded-xl font-black text-xs transition-all duration-300 ${bg} ${isCurrent ? "ring-2 ring-blue-500 ring-offset-4 ring-offset-[#FBFCFE] scale-105 z-10" : "hover:brightness-95 active:scale-95"}`}
+                  >
+                    {idx + 1}
+                  </button>
+                );
+              })}
             </div>
-            <div className="flex items-center gap-3 mt-2">
-              <span className="w-4 h-4 bg-gray-300 rounded" /> <span>Not Visited</span>
-            </div>
-            <div className="flex items-center gap-3 mt-2">
-              <span className="w-4 h-4 bg-purple-500 rounded" /> <span>Review</span>
+
+            <div className="bg-white rounded-[2rem] p-6 border border-slate-100 space-y-4">
+               <div className="flex justify-between items-center"><span className="text-[10px] font-black text-slate-400 uppercase">Attempt Rate</span><span className="text-sm font-black text-blue-600">{Math.round((answers.length / questions.length) * 100)}%</span></div>
+               <div className="w-full bg-slate-50 h-1.5 rounded-full overflow-hidden">
+                 <div className="bg-blue-600 h-full transition-all duration-700" style={{width: `${(answers.length / questions.length) * 100}%`}}></div>
+               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-4 gap-3">
-            {questions.map((q, idx) => {
-              const answered = answers.find((a) => a.questionId === q._id);
-              const isVisited = visitedQuestions.has(q._id);
-              const isReview = reviewQuestions.has(q._id);
-              const isCurrent = current === idx;
-
-              let bg = "bg-gray-300 text-gray-800";
-              if (isReview) bg = "bg-purple-500 text-white";
-              else if (answered) bg = "bg-green-500 text-white";
-              else if (isVisited) bg = "bg-red-500 text-white";
-
-              return (
-                <button
-                  key={q._id}
-                  onClick={() => {
-                    markQuestionAsVisited(idx);
-                    setCurrent(idx);
-                  }}
-                  className={`h-12 rounded font-bold text-sm flex items-center justify-center ${bg} ${isCurrent ? "ring-2 ring-blue-600" : "hover:opacity-90"}`}
-                  title={`Q${idx + 1} - ${isReview ? "Review" : answered ? "Answered" : isVisited ? "Not Answered" : "Not Visited"}`}
-                >
-                  {idx + 1}
-                </button>
-              );
-            })}
+          <div className="p-6 bg-white border-t border-slate-50">
+            <button
+              onClick={() => handleSubmit(false)}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] shadow-xl shadow-blue-100 transition-all active:scale-[0.98]"
+            >
+              Final Submit
+            </button>
           </div>
-
-          <div className="mt-6 bg-white p-3 rounded text-sm border border-gray-200">
-            <div className="flex justify-between"><span>Answered</span><strong>{answers.length}</strong></div>
-            <div className="flex justify-between mt-1"><span>Visited (no answer)</span><strong>{Math.max(0, visitedQuestions.size - answers.length)}</strong></div>
-            <div className="flex justify-between mt-1"><span>Not Visited</span><strong>{Math.max(0, questions.length - visitedQuestions.size)}</strong></div>
-          </div>
-
-          <button
-            onClick={() => handleSubmit(false)}
-            className="mt-6 w-full bg-red-600 text-white py-2 rounded">
-            FINAL SUBMIT
-          </button>
         </div>
       </div>
 
       {showWarning && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[10000]">
-          <div className="bg-white p-8 rounded-2xl shadow-2xl text-center max-w-md">
-            <h2 className="text-xl font-bold text-red-600 mb-4">
-              Warning Detected
-            </h2>
-            <p className="text-sm mb-4">
-              You have violated exam rules.
-              <br />
-              Violations: {violations} / 3
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-[10000] p-6">
+          <div className="bg-white p-10 rounded-[3rem] shadow-2xl text-center max-w-sm w-full border border-white/20">
+            <div className="w-20 h-20 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-6 font-bold italic shadow-inner">!</div>
+            <h2 className="text-2xl font-black text-slate-800 mb-2">Rule Alert</h2>
+            <p className="text-[13px] text-slate-500 font-medium mb-8 leading-relaxed">
+              Detection of forbidden movement. Further violations will terminate the session.
+              <br /><br />
+              <span className="bg-rose-50 text-rose-600 px-5 py-2 rounded-full font-black text-xs uppercase tracking-tighter">Violations: {violations} / 3</span>
             </p>
 
             <button
@@ -468,9 +529,9 @@ export default function ExamWindow() {
                   await document.documentElement.requestFullscreen();
                 }
               }}
-              className="px-6 py-2 bg-blue-600 text-white rounded"
+              className="w-full py-4 bg-slate-900 text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-2xl hover:bg-black transition-all shadow-xl"
             >
-              Return to Exam
+              Back to Test
             </button>
           </div>
         </div>

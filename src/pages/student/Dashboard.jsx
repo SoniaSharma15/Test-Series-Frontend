@@ -96,7 +96,14 @@ export default function Dashboard() {
             </div>
 
             <div className="grid grid-cols-1 gap-4">
-              {data?.enrolledSeries?.map((series) => (
+{data?.enrolledSeries
+  ?.filter((series) => {
+    if (!series.expiryDate) return true;
+    const today = new Date();
+    const expiry = new Date(series.expiryDate);
+    return expiry >= today;
+  })
+  .map((series) => (
                 <BladeCard
                   key={series._id}
                   series={series}
@@ -140,11 +147,20 @@ function MetricBox({ label, value, icon }) {
 
 function BladeCard({ series, navigate }) {
   const remainingDays = getRemainingDays(series.expiryDate);
+  const isExpired = remainingDays === 0 && series.expiryDate;
 
   return (
     <div
-      onClick={() => navigate(`/student/my-tests?series=${series._id}`)}
-      className="bg-white p-6 px-10 rounded-[2rem] border border-slate-200 hover:border-blue-600 transition-all cursor-pointer group shadow-sm flex flex-col lg:flex-row gap-8 items-center"
+      onClick={() =>
+        !isExpired &&
+        navigate(`/student/my-tests?series=${series._id}`)
+      }
+      className={`bg-white p-6 px-10 rounded-[2rem] border transition-all cursor-pointer group shadow-sm flex flex-col lg:flex-row gap-8 items-center
+        ${
+          isExpired
+            ? "border-red-200 opacity-60 cursor-not-allowed"
+            : "border-slate-200 hover:border-blue-600"
+        }`}
     >
       {/* Identity */}
       <div className="flex-1 w-full">
@@ -181,7 +197,6 @@ function BladeCard({ series, navigate }) {
 
       {/* Expiry & Count */}
       <div className="flex gap-10 shrink-0 bg-slate-50 px-8 py-4 rounded-2xl border border-slate-100">
-        
         <div className="text-center">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
             Tests
@@ -195,8 +210,12 @@ function BladeCard({ series, navigate }) {
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
             Status
           </p>
-          <p className="text-lg font-black text-blue-600">
-            Active
+          <p
+            className={`text-lg font-black ${
+              isExpired ? "text-red-500" : "text-emerald-600"
+            }`}
+          >
+            {isExpired ? "Expired" : "Active"}
           </p>
         </div>
 
@@ -211,10 +230,13 @@ function BladeCard({ series, navigate }) {
                 : "text-emerald-600"
             }`}
           >
-            {remainingDays !== null ? `${remainingDays} Days` : "Life"}
+            {series.expiryDate
+              ? remainingDays > 0
+                ? `${remainingDays} Days`
+                : "Expired"
+              : "Life"}
           </p>
         </div>
-
       </div>
 
       <ChevronRight

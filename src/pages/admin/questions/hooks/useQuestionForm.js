@@ -114,7 +114,7 @@ export default function useQuestionForm({ testId, isHindiOnly }) {
   const canSubmitNormal = useMemo(() => {
     if (isMSQ) return validateMSQ(form, isHindiOnly);
     if (isMCQ || isMath) return validateMCQorMATH(form, isHindiOnly);
-    if (isAR) return validateAR(form);
+    if (isAR) return validateAR(form, isHindiOnly);
     return true;
   }, [form, isHindiOnly, isMCQ, isMSQ, isMath, isAR]);
 

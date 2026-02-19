@@ -1,25 +1,12 @@
 // src/pages/admin/ManageQuestions.jsx
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate, useParams, Link } from "react-router-dom";
+
+import { useEffect, useState } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import axios from "../../services/axiosInstance";
+import toast from "react-hot-toast";
+
 import AdminSidebar from "../../components/admin/AdminSidebar";
-import LanguageControls from "./questions/components/LanguageControls";
-import ModeSwitch from "./questions/components/ModeSwitch";
-import NormalQuestionForm from "./questions/components/NormalQuestionForm";
-import PassageForm from "./questions/components/PassageForm";
-import QuestionsTable from "./questions/components/QuestionsTable";
 import ConfirmDialog from "../../components/ui/ConfirmDialog";
-
-import useQuestions from "./questions/hooks/useQuestions";
-import useQuestionForm from "./questions/hooks/useQuestionForm";
-
-import {
-  getIsHindiOnly,
-  getBasePassageText,
-  validatePassage,
-} from "./questions/utils/questionHelpers";
-import { emptyPassageSub } from "./questions/utils/questionTemplate";
-
-import { AR_OPTIONS } from "./questions/utils/constants";
 
 import {
   ChevronRight,
@@ -27,10 +14,10 @@ import {
   LayoutDashboard,
   Sparkles,
 } from "lucide-react";
-import axios from "../../services/axiosInstance";
-import toast from "react-hot-toast";
 
-/** ✅ FIXED useMediaQuery */
+/* =========================================================
+   Responsive Hook (Same behavior as your previous version)
+========================================================= */
 function useMediaQuery(query) {
   const [matches, setMatches] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -49,7 +36,8 @@ function useMediaQuery(query) {
     setMatches(mql.matches);
 
     return () => {
-      if (mql.removeEventListener) mql.removeEventListener("change", onChange);
+      if (mql.removeEventListener)
+        mql.removeEventListener("change", onChange);
       else mql.removeListener(onChange);
     };
   }, [query]);
@@ -57,475 +45,860 @@ function useMediaQuery(query) {
   return matches;
 }
 
-/** ✅ options objects builder (NO cross-fill; language safe) */
-const toOptObjs4 = (enArr, hiArr) => {
-  const en = Array.isArray(enArr) ? enArr : ["", "", "", ""];
-  const hi = Array.isArray(hiArr) ? hiArr : ["", "", "", ""];
-  return Array.from({ length: 4 }).map((_, i) => ({
-    english: String(en[i] || "").trim(),
-    hindi: String(hi[i] || "").trim(),
-  }));
-};
 
+/* =========================================================
+   2️⃣ CONSTANTS (Model Compatible)
+========================================================= */
+
+// Fixed Option IDs (Model requires exactly these)
+const OPTION_IDS = ["A", "B", "C", "D"];
+
+// Question Types (Match backend enum)
+const QUESTION_TYPES = [
+  "MCQ",
+  "MSQ",
+  "ASSERTION_REASON",
+  "MATH",
+  "PASSAGE",
+];
+
+// Difficulty (Match backend enum)
+const DIFFICULTY_LEVELS = ["EASY", "MEDIUM", "HARD"];
+
+/* ---------- Empty Option Template ---------- */
+const emptyOptions = () =>
+  OPTION_IDS.map((id) => ({
+    id,
+    text: {
+      english: "",
+      hindi: "",
+    },
+  }));
+
+/* ---------- Empty Normal Question ---------- */
+const emptyNormalForm = () => ({
+  type: "MCQ",
+  difficulty: "MEDIUM",
+
+  questionText: {
+    english: "",
+    hindi: "",
+  },
+
+  assertion: {
+    english: "",
+    hindi: "",
+  },
+
+  reason: {
+    english: "",
+    hindi: "",
+  },
+
+  options: emptyOptions(),
+
+  correctAnswers: [],
+
+  marks: 1,
+  negativeMarks: 0,
+
+  explanation: {
+    english: "",
+    hindi: "",
+  },
+});
+
+/* ---------- Empty Child Question (For Passage) ---------- */
+const emptyChildQuestion = () => ({
+  type: "MCQ",
+
+  questionText: {
+    english: "",
+    hindi: "",
+  },
+
+  assertion: {
+    english: "",
+    hindi: "",
+  },
+
+  reason: {
+    english: "",
+    hindi: "",
+  },
+
+  options: emptyOptions(),
+
+  correctAnswers: [],
+
+  marks: 1,
+  negativeMarks: 0,
+
+  explanation: {
+    english: "",
+    hindi: "",
+  },
+
+  image: "", // will be handled via FormData if needed later
+});
+
+/* ---------- Empty Passage ---------- */
+const emptyPassageForm = () => ({
+  difficulty: "MEDIUM",
+
+  passageText: {
+    english: "",
+    hindi: "",
+  },
+
+  passageQuestions: [],
+});
+
+/* =========================================================
+   MAIN COMPONENT
+========================================================= */
 export default function ManageQuestions() {
   const { testId } = useParams();
-  const location = useLocation();
   const navigate = useNavigate();
 
   const isDesktop = useMediaQuery("(min-width: 1280px)");
 
-  const [langMode, setLangMode] = useState("EN");
-  const [dualLang, setDualLang] = useState(true);
-  const isHindiOnly = getIsHindiOnly({ dualLang, langMode });
+    /* =========================================================
+     3️⃣ GLOBAL STATE SECTION
+  ========================================================= */
 
-  const {
-    form,
-    setForm,
-    editId,
-    submitting,
-    isMCQ,
-    isMath,
-    isAR,
-    canSubmitNormal,
-    setType,
-    resetNormal,
-    handleEdit,
-    handleOptionChange,
-    handleOptionHiChange,
-    submitNormal,
-  } = useQuestionForm({ testId, isHindiOnly });
+  // Mode: NORMAL or PASSAGE
+  const [mode, setMode] = useState("NORMAL");
 
-  const { questions, loading, fetchQuestions } = useQuestions({
-    testId,
-    location,
-    navigate,
-    onAutoEdit: handleEdit,
-  });
+  // Loading & Submission
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const [mode, setMode] = useState("NORMAL"); // NORMAL | PASSAGE
-  const [passageText, setPassageText] = useState("");
-  const [passageTextHi, setPassageTextHi] = useState("");
-  const [passageSubs, setPassageSubs] = useState([emptyPassageSub()]);
+  // Questions list
+  const [questions, setQuestions] = useState([]);
 
+  // Edit Mode
+  const [editId, setEditId] = useState(null);
+
+  // Delete Confirmation
   const [deleteId, setDeleteId] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  const resetPassage = useCallback(() => {
-    setPassageText("");
-    setPassageTextHi("");
-    setPassageSubs([emptyPassageSub()]);
-  }, []);
+  // Language Controls
+  const [dualLang, setDualLang] = useState(true);
+  const [langMode, setLangMode] = useState("EN"); // EN | HI
 
-  const basePassageText = getBasePassageText({
-    passageText,
-    passageTextHi,
-    isHindiOnly,
-  });
+  // Image (for MATH question)
+  const [imageFile, setImageFile] = useState(null);
 
-  const passageValid = useMemo(
-    () => validatePassage({ basePassageText, passageSubs, isHindiOnly }),
-    [basePassageText, passageSubs, isHindiOnly]
-  );
+  /* ---------------- NORMAL QUESTION FORM ---------------- */
 
-  const confirmDelete = async () => {
-    if (!deleteId) return;
-    setDeleteLoading(true);
+  const [form, setForm] = useState(emptyNormalForm());
+
+  /* ---------------- PASSAGE FORM ---------------- */
+
+  const [passage, setPassage] = useState(emptyPassageForm());
+
+
+    /* =========================================================
+     4️⃣ UTILITY FUNCTIONS
+  ========================================================= */
+
+  /* ---------- Reset Normal Form ---------- */
+  const resetNormal = () => {
+    setForm(emptyNormalForm());
+    setImageFile(null);
+    setEditId(null);
+  };
+
+  /* ---------- Reset Passage ---------- */
+  const resetPassage = () => {
+    setPassage(emptyPassageForm());
+    setEditId(null);
+  };
+
+  /* ---------- Handle Option Text Change ---------- */
+  const handleOptionChange = (index, field, value) => {
+    const updated = [...form.options];
+    updated[index].text[field] = value;
+    setForm({ ...form, options: updated });
+  };
+
+  /* ---------- Toggle Correct Answer (MCQ/MSQ Safe) ---------- */
+  const toggleCorrect = (id) => {
+    if (form.type === "MSQ") {
+      if (form.correctAnswers.includes(id)) {
+        setForm({
+          ...form,
+          correctAnswers: form.correctAnswers.filter((x) => x !== id),
+        });
+      } else {
+        setForm({
+          ...form,
+          correctAnswers: [...form.correctAnswers, id],
+        });
+      }
+    } else {
+      setForm({
+        ...form,
+        correctAnswers: [id],
+      });
+    }
+  };
+
+  /* ---------- Add Passage Question ---------- */
+  const addPassageQuestion = () => {
+    setPassage({
+      ...passage,
+      passageQuestions: [
+        ...passage.passageQuestions,
+        emptyChildQuestion(),
+      ],
+    });
+  };
+
+  /* ---------- Remove Passage Question ---------- */
+  const removePassageQuestion = (index) => {
+    const updated = [...passage.passageQuestions];
+    updated.splice(index, 1);
+    setPassage({
+      ...passage,
+      passageQuestions: updated,
+    });
+  };
+
+  /* ---------- Update Passage Question Field ---------- */
+  const updatePassageQuestion = (index, key, value) => {
+    const updated = [...passage.passageQuestions];
+    updated[index][key] = value;
+    setPassage({
+      ...passage,
+      passageQuestions: updated,
+    });
+  };
+
+  /* ---------- Update Passage Option ---------- */
+  const updatePassageOption = (qIndex, optIndex, field, value) => {
+    const updated = [...passage.passageQuestions];
+    updated[qIndex].options[optIndex].text[field] = value;
+    setPassage({
+      ...passage,
+      passageQuestions: updated,
+    });
+  };
+
+  /* ---------- Toggle Passage Correct ---------- */
+  const togglePassageCorrect = (qIndex, id) => {
+    const updated = [...passage.passageQuestions];
+    const question = updated[qIndex];
+
+    if (question.type === "MSQ") {
+      if (question.correctAnswers.includes(id)) {
+        question.correctAnswers = question.correctAnswers.filter(
+          (x) => x !== id
+        );
+      } else {
+        question.correctAnswers.push(id);
+      }
+    } else {
+      question.correctAnswers = [id];
+    }
+
+    setPassage({ ...passage, passageQuestions: updated });
+  };
+
+    /* =========================================================
+     5️⃣ API FUNCTIONS
+  ========================================================= */
+
+  /* ---------- Fetch Questions By Test ---------- */
+  const fetchQuestions = async () => {
     try {
+      setLoading(true);
+      const res = await axios.get(`/questions/${testId}`);
+      setQuestions(res.data.data || []);
+    } catch (err) {
+      toast.error("Failed to fetch questions");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* ---------- Submit Normal Question ---------- */
+  const handleSubmitNormal = async () => {
+    try {
+      setSubmitting(true);
+
+      const basePayload = {
+        testId,
+        type: form.type,
+        difficulty: form.difficulty,
+        marks: Number(form.marks),
+        negativeMarks: Number(form.negativeMarks),
+        explanation: form.explanation,
+        options: form.options,
+        correctAnswers: form.correctAnswers,
+      };
+
+      if (form.type === "ASSERTION_REASON") {
+        basePayload.assertion = form.assertion;
+        basePayload.reason = form.reason;
+      } else {
+        basePayload.questionText = form.questionText;
+      }
+
+      /* ---------- MATH (Image Upload via FormData) ---------- */
+      if (form.type === "MATH") {
+        const fd = new FormData();
+
+        Object.entries(basePayload).forEach(([key, value]) => {
+          fd.append(
+            key,
+            typeof value === "object"
+              ? JSON.stringify(value)
+              : value
+          );
+        });
+
+        if (imageFile) {
+          fd.append("image", imageFile);
+        }
+
+        if (editId) {
+          await axios.put(`/questions/${editId}`, fd);
+          toast.success("Question updated");
+        } else {
+          await axios.post("/questions", fd);
+          toast.success("Question created");
+        }
+      } else {
+        /* ---------- Non-MATH ---------- */
+        if (editId) {
+          await axios.put(`/questions/${editId}`, basePayload);
+          toast.success("Question updated");
+        } else {
+          await axios.post("/questions", basePayload);
+          toast.success("Question created");
+        }
+      }
+
+      resetNormal();
+      fetchQuestions();
+    } catch (err) {
+      toast.error(
+        err?.response?.data?.message || "Failed to submit"
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  /* ---------- Submit Passage ---------- */
+  const handleSubmitPassage = async () => {
+    try {
+      setSubmitting(true);
+
+      const payload = {
+        testId,
+        type: "PASSAGE",
+        difficulty: passage.difficulty,
+        passageText: passage.passageText,
+        passageQuestions: passage.passageQuestions,
+      };
+
+      if (editId) {
+        await axios.put(`/questions/${editId}`, payload);
+        toast.success("Passage updated");
+      } else {
+        await axios.post("/questions", payload);
+        toast.success("Passage created");
+      }
+
+      resetPassage();
+      fetchQuestions();
+      setMode("NORMAL");
+    } catch (err) {
+      toast.error(
+        err?.response?.data?.message || "Failed to submit passage"
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  /* ---------- Handle Delete ---------- */
+  const handleDelete = async () => {
+    if (!deleteId) return;
+
+    try {
+      setDeleteLoading(true);
       await axios.delete(`/questions/${deleteId}`);
-      await fetchQuestions();
+      toast.success("Question deleted");
       setDeleteId(null);
+      fetchQuestions();
+    } catch (err) {
+      toast.error("Delete failed");
     } finally {
       setDeleteLoading(false);
     }
   };
 
-  const cancelDelete = () => {
-    if (deleteLoading) return;
-    setDeleteId(null);
+  /* ---------- Handle Edit ---------- */
+  const handleEdit = (question) => {
+    setEditId(question._id);
+
+    if (question.type === "PASSAGE") {
+      setMode("PASSAGE");
+      setPassage({
+        difficulty: question.difficulty,
+        passageText: question.passageText,
+        passageQuestions: question.passageQuestions,
+      });
+    } else {
+      setMode("NORMAL");
+      setForm({
+        type: question.type,
+        difficulty: question.difficulty,
+        questionText: question.questionText || {
+          english: "",
+          hindi: "",
+        },
+        assertion: question.assertion || {
+          english: "",
+          hindi: "",
+        },
+        reason: question.reason || {
+          english: "",
+          hindi: "",
+        },
+        options: question.options,
+        correctAnswers: question.correctAnswers || [],
+        marks: question.marks,
+        negativeMarks: question.negativeMarks,
+        explanation: question.explanation || {
+          english: "",
+          hindi: "",
+        },
+      });
+    }
   };
 
-  /** ✅ REAL Passage submit */
-  const handleSubmitPassage = useCallback(
-    async (e) => {
-      e?.preventDefault?.();
-      if (!passageValid) {
-        toast.error("Passage incomplete");
-        return;
-      }
-
-      try {
-        const passageEn = String(passageText || "").trim();
-        const passageHi = String(passageTextHi || "").trim();
-
-        // loop all sub questions => create one question per sub
-        for (const s of passageSubs) {
-          const marks = String(s.marks ?? "").trim() === "" ? 0 : Number(s.marks);
-          const negativeMarks =
-            String(s.negativeMarks ?? "").trim() === "" ? 0 : Number(s.negativeMarks);
-
-          // base questionText (sub question)
-          const qEn = String(s.questionText || "").trim();
-          const qHi = String(s.questionTextHi || "").trim();
-
-          let payload = null;
-
-          // ✅ backend validation language (must match your updated controller)
-          const metaLang = isHindiOnly ? "hindi" : "english";
-
-          // ======= ASSERTION_REASON =======
-          if (s.type === "ASSERTION_REASON") {
-            const idx = Number(s.correctAnswerIndex);
-            const correct = AR_OPTIONS[idx] || "";
-
-            const aEn = String(s.assertionText || "").trim();
-            const rEn = String(s.reasonText || "").trim();
-            const aHi = String(s.assertionTextHi || "").trim();
-            const rHi = String(s.reasonTextHi || "").trim();
-
-            payload = {
-              testId,
-              type: "ASSERTION_REASON",
-              marks,
-              negativeMarks,
-              lang: metaLang,
-              questionText: {
-                english: `PASSAGE:\n${passageEn || passageHi}\n\nASSERTION: ${aEn || ""}\nREASON: ${rEn || ""}`,
-                hindi: `PASSAGE:\n${passageHi || passageEn}\n\nASSERTION: ${aHi || ""}\nREASON: ${rHi || ""}`,
-              },
-              options: AR_OPTIONS.slice(0, 4).map((t) => ({ english: t, hindi: t })),
-              correctAnswer: correct, // backend string (AR options)
-              allowImage: false,
-            };
-          } else {
-            // ======= MCQ / MATH / MSQ =======
-            const options = toOptObjs4(s.options, s.optionsHi);
-
-            // ✅ MSQ detection: either s.type === "MSQ" or old pattern (MCQ + isMSQ)
-            const isMSQ = s.type === "MSQ" || Boolean(s.type === "MCQ" && s.isMSQ);
-
-            if (isMSQ) {
-              // ✅ NEW backend: type="MSQ" + correctAnswers[]
-              const correctAnswers = Array.isArray(s.correctAnswers) ? s.correctAnswers : [];
-
-              // validate answers against selected language options
-              const optList = options
-                .map((o) =>
-                  String((metaLang === "hindi" ? o.hindi : o.english) || "").trim()
-                )
-                .filter(Boolean);
-
-              const normalized = [
-                ...new Set(
-                  correctAnswers.map((x) => String(x || "").trim()).filter(Boolean)
-                ),
-              ];
-
-              const finalCorrects = normalized.filter((x) => optList.includes(x));
-
-              payload = {
-                testId,
-                type: "MSQ",
-                marks,
-                negativeMarks,
-                lang: metaLang,
-                questionText: {
-                  english: `PASSAGE:\n${passageEn || passageHi}\n\nQ: ${qEn || ""}`,
-                  hindi: `PASSAGE:\n${passageHi || passageEn}\n\nQ: ${qHi || ""}`,
-                },
-                options,
-                correctAnswers: finalCorrects,
-                allowImage: false,
-              };
-            } else {
-              // normal MCQ/MATH single correct
-              let correctAnswer = String(s.correctAnswer || "").trim();
-
-              // if correct missing but HI correct selected => map by index (legacy safe)
-              if (!correctAnswer) {
-                const caHi = String(s.correctAnswerHi || "").trim();
-                if (caHi) {
-                  const hiArr = Array.isArray(s.optionsHi) ? s.optionsHi : [];
-                  const enArr = Array.isArray(s.options) ? s.options : [];
-                  const idx = hiArr.findIndex((x) => String(x || "").trim() === caHi);
-                  if (idx >= 0) correctAnswer = String(enArr[idx] || "").trim();
-                }
-              }
-
-              payload = {
-                testId,
-                type: s.type === "MATH" ? "MATH" : "MCQ",
-                marks,
-                negativeMarks,
-                lang: metaLang,
-                questionText: {
-                  english: `PASSAGE:\n${passageEn || passageHi}\n\nQ: ${qEn || ""}`,
-                  hindi: `PASSAGE:\n${passageHi || passageEn}\n\nQ: ${qHi || ""}`,
-                },
-                options,
-                correctAnswer,
-                allowImage: false,
-              };
-            }
-          }
-
-          // ⚠️ passage MATH image upload not handled here
-          await axios.post("/questions", payload);
-        }
-
-        toast.success("Passage created");
-        resetPassage();
-        await fetchQuestions();
-        setMode("NORMAL");
-      } catch (err) {
-        const msg =
-          err?.response?.data?.message ||
-          err?.response?.data?.error ||
-          (typeof err?.response?.data === "string" ? err.response.data : null) ||
-          "Failed to create passage";
-        toast.error(msg);
-      }
-    },
-    [passageValid, passageText, passageTextHi, passageSubs, testId, resetPassage, fetchQuestions, isHindiOnly]
-  );
-
-  const showSplit = isDesktop && (questions?.length || 0) > 10;
+  /* 
+    ⛔ STEP 3 (Global State) yahan add hoga
+    ⛔ STEP 4 (Utility Functions) yahan add hoga
+    ⛔ STEP 5 (API Functions) yahan add hoga
+  */
 
   return (
     <div className="flex min-h-screen bg-[#F8FAFC]">
+      {/* Sidebar */}
       <AdminSidebar />
 
+      {/* Main */}
       <main className="flex-1 min-w-0 overflow-y-auto">
         <div className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-10 py-6 lg:py-10 space-y-6">
-          {/* Header */}
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.22em] text-blue-600">
-                <LayoutDashboard size={14} />
-                Admin
-                <ChevronRight size={14} className="text-slate-300" />
-                <ClipboardList size={14} />
-                Questions
-              </div>
+          
 
-              <h1 className="mt-2 text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                Manage <span className="text-blue-600">Questions</span>
-              </h1>
+          {/* =========================================================
+   6️⃣ RENDER SECTIONS
+========================================================= */}
 
-              <p className="mt-2 text-sm text-slate-500">
-                MCQ, MSQ, Math (image+text), Assertion-Reason, Passage based questions.
-              </p>
-            </div>
+{/* ---------------- HEADER ---------------- */}
+<div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+  <div>
+    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.22em] text-blue-600">
+      <LayoutDashboard size={14} />
+      Admin
+      <ChevronRight size={14} className="text-slate-300" />
+      <ClipboardList size={14} />
+      Questions
+    </div>
 
-            <div className="flex items-center gap-3">
-              <Link
-                to="/admin/tests"
-                className="rounded-2xl px-4 py-2.5 bg-white border border-slate-200 text-slate-700 font-black text-[11px] uppercase tracking-widest hover:bg-slate-50"
-              >
-                Back to Tests
-              </Link>
+    <h1 className="mt-2 text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+      Manage <span className="text-blue-600">Questions</span>
+    </h1>
 
-              <div className="rounded-2xl px-4 py-2.5 bg-slate-900 text-white font-black text-[11px] uppercase tracking-widest inline-flex items-center gap-2">
-                <Sparkles size={14} />
-                Test ID: {String(testId || "").slice(0, 8)}…
-              </div>
-            </div>
-          </div>
+    <p className="mt-2 text-sm text-slate-500">
+      MCQ, MSQ, Math, Assertion-Reason, Passage based questions.
+    </p>
+  </div>
 
-          {/* Sticky controls */}
-          <div className="sticky top-0 z-40 -mx-4 sm:-mx-6 lg:-mx-10 px-4 sm:px-6 lg:px-10 py-4 bg-[#F8FAFC]/90 backdrop-blur border-y border-slate-200">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-              <div className="lg:col-span-7">
-                <div className="bg-white rounded-[1.25rem] border border-slate-200 shadow-sm p-4">
-                  <LanguageControls
-                    langMode={langMode}
-                    setLangMode={setLangMode}
-                    dualLang={dualLang}
-                    setDualLang={setDualLang}
-                    isHindiOnly={isHindiOnly}
-                  />
-                </div>
-              </div>
+  <div className="flex items-center gap-3">
+    <Link
+      to="/admin/tests"
+      className="rounded-2xl px-4 py-2.5 bg-white border border-slate-200 text-slate-700 font-black text-[11px] uppercase tracking-widest hover:bg-slate-50"
+    >
+      Back to Tests
+    </Link>
 
-              <div className="lg:col-span-5">
-                <div className="bg-white rounded-[1.25rem] border border-slate-200 shadow-sm p-4">
-                  <ModeSwitch
-                    mode={mode}
-                    setMode={setMode}
-                    onToNormal={() => {}}
-                    onToPassage={() => resetNormal()}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
+    <div className="rounded-2xl px-4 py-2.5 bg-slate-900 text-white font-black text-[11px] uppercase tracking-widest inline-flex items-center gap-2">
+      <Sparkles size={14} />
+      Test ID: {String(testId || "").slice(0, 8)}…
+    </div>
+  </div>
+</div>
 
-          {/* Layout */}
-          {showSplit ? (
-            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-              <section className="xl:col-span-5">
-                <div className="bg-white rounded-[1.5rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col" style={{ maxHeight: "calc(100vh - 220px)" }}>
-                  <div className="px-5 sm:px-6 py-5 border-b border-slate-100 bg-slate-50/40 shrink-0">
-                    <h2 className="text-lg font-black text-slate-900">
-                      {mode === "NORMAL"
-                        ? editId
-                          ? "Edit Question"
-                          : "Add New Question"
-                        : "Passage Builder"}
-                    </h2>
-                  </div>
 
-                  <div className="p-5 sm:p-6 overflow-y-auto flex-1">
-                    {mode === "NORMAL" ? (
-                      <NormalQuestionForm
-                        form={form}
-                        setForm={setForm}
-                        editId={editId}
-                        submitting={submitting}
-                        dualLang={dualLang}
-                        langMode={langMode}
-                        isHindiOnly={isHindiOnly}
-                        canSubmitNormal={canSubmitNormal}
-                        onReset={resetNormal}
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          submitNormal({ fetchQuestions });
-                        }}
-                        onSetType={setType}
-                        isMCQ={isMCQ}
-                        isMSQ={form.type === "MSQ"} 
-                        isMath={isMath}
-                        isAR={isAR}
-                        onOptionChange={handleOptionChange}
-                        onOptionHiChange={handleOptionHiChange}
-                      />
-                    ) : (
-                      <PassageForm
-                        submitting={submitting}
-                        dualLang={dualLang}
-                        langMode={langMode}
-                        isHindiOnly={isHindiOnly}
-                        passageText={passageText}
-                        setPassageText={setPassageText}
-                        passageTextHi={passageTextHi}
-                        setPassageTextHi={setPassageTextHi}
-                        passageSubs={passageSubs}
-                        setPassageSubs={setPassageSubs}
-                        passageValid={passageValid}
-                        onSubmit={handleSubmitPassage}
-                        onReset={resetPassage}
-                      />
-                    )}
-                  </div>
-                </div>
-              </section>
+{/* ---------------- CONTROLS (Mode + Language) ---------------- */}
+<div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex flex-wrap gap-4 items-center justify-between">
 
-              <section className="xl:col-span-7">
-                <div className="bg-white rounded-[1.5rem] border border-slate-200 shadow-sm overflow-hidden">
-                  <div className="px-5 sm:px-6 py-5 border-b border-slate-100 bg-slate-50/40 flex items-center justify-between gap-3">
-                    <div>
-                      <h2 className="text-lg font-black text-slate-900">Questions Library</h2>
-                      <p className="text-sm text-slate-500 mt-1">
-                        Total:{" "}
-                        <span className="font-black text-slate-900">{questions?.length || 0}</span>
-                      </p>
-                    </div>
-                  </div>
+  {/* Mode Switch */}
+  <div className="flex gap-2">
+    <button
+      onClick={() => setMode("NORMAL")}
+      className={`px-4 py-2 rounded-xl font-bold text-xs ${
+        mode === "NORMAL"
+          ? "bg-blue-600 text-white"
+          : "bg-slate-100 text-slate-700"
+      }`}
+    >
+      Normal
+    </button>
 
-                  <div className="p-2 sm:p-4 max-h-[calc(100vh-260px)] overflow-y-auto">
-                    <QuestionsTable
-                      loading={loading}
-                      questions={questions}
-                      onEdit={handleEdit}
-                      onDelete={(id) => setDeleteId(id)}
-                    />
-                  </div>
-                </div>
-              </section>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              <section>
-                <div className="bg-white rounded-[1.5rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col" style={{ maxHeight: "calc(100vh - 220px)" }}>
-                  <div className="px-5 sm:px-6 py-5 border-b border-slate-100 bg-slate-50/40 shrink-0">
-                    <h2 className="text-lg font-black text-slate-900">
-                      {mode === "NORMAL"
-                        ? editId
-                          ? "Edit Question"
-                          : "Add New Question"
-                        : "Passage Builder"}
-                    </h2>
-                  </div>
+    <button
+      onClick={() => setMode("PASSAGE")}
+      className={`px-4 py-2 rounded-xl font-bold text-xs ${
+        mode === "PASSAGE"
+          ? "bg-blue-600 text-white"
+          : "bg-slate-100 text-slate-700"
+      }`}
+    >
+      Passage
+    </button>
+  </div>
 
-                  <div className="p-5 sm:p-6 overflow-y-auto flex-1">
-                    {mode === "NORMAL" ? (
-                      <NormalQuestionForm
-                        form={form}
-                        setForm={setForm}
-                        editId={editId}
-                        submitting={submitting}
-                        dualLang={dualLang}
-                        langMode={langMode}
-                        isHindiOnly={isHindiOnly}
-                        canSubmitNormal={canSubmitNormal}
-                        onReset={resetNormal}
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          submitNormal({ fetchQuestions });
-                        }}
-                        onSetType={setType}
-                        isMCQ={isMCQ}
-                        isMSQ={form.type === "MSQ"}
-                        isMath={isMath}
-                        isAR={isAR}
-                        onOptionChange={handleOptionChange}
-                        onOptionHiChange={handleOptionHiChange}
-                      />
-                    ) : (
-                      <PassageForm
-                        submitting={submitting}
-                        dualLang={dualLang}
-                        langMode={langMode}
-                        isHindiOnly={isHindiOnly}
-                        passageText={passageText}
-                        setPassageText={setPassageText}
-                        passageTextHi={passageTextHi}
-                        setPassageTextHi={setPassageTextHi}
-                        passageSubs={passageSubs}
-                        setPassageSubs={setPassageSubs}
-                        passageValid={passageValid}
-                        onSubmit={handleSubmitPassage}
-                        onReset={resetPassage}
-                      />
-                    )}
-                  </div>
-                </div>
-              </section>
+  {/* Language Toggle */}
+  <div className="flex gap-2 items-center">
+    <button
+      onClick={() => setLangMode("EN")}
+      className={`px-3 py-1 rounded-lg text-xs font-bold ${
+        langMode === "EN" ? "bg-blue-600 text-white" : "bg-slate-100"
+      }`}
+    >
+      EN
+    </button>
+    <button
+      onClick={() => setLangMode("HI")}
+      className={`px-3 py-1 rounded-lg text-xs font-bold ${
+        langMode === "HI" ? "bg-blue-600 text-white" : "bg-slate-100"
+      }`}
+    >
+      HI
+    </button>
+  </div>
+</div>
 
-              <section>
-                <div className="p-2 sm:p-4">
-                  <QuestionsTable
-                    loading={loading}
-                    questions={questions}
-                    onEdit={handleEdit}
-                    onDelete={(id) => setDeleteId(id)}
-                  />
-                </div>
-              </section>
-            </div>
+
+{/* ---------------- FORM SECTION ---------------- */}
+<div className="bg-white rounded-[1.5rem] border border-slate-200 shadow-sm p-6 space-y-6">
+
+  {mode === "NORMAL" ? (
+    <>
+      {/* Type + Difficulty */}
+      <div className="grid md:grid-cols-2 gap-4">
+        <select
+          value={form.type}
+          onChange={(e) =>
+            setForm({ ...form, type: e.target.value })
+          }
+          className="border rounded-xl p-3"
+        >
+          {QUESTION_TYPES.map((t) =>
+            t !== "PASSAGE" ? (
+              <option key={t} value={t}>{t}</option>
+            ) : null
           )}
+        </select>
+
+        <select
+          value={form.difficulty}
+          onChange={(e) =>
+            setForm({ ...form, difficulty: e.target.value })
+          }
+          className="border rounded-xl p-3"
+        >
+          {DIFFICULTY_LEVELS.map((d) => (
+            <option key={d} value={d}>{d}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Question / Assertion */}
+      {form.type === "ASSERTION_REASON" ? (
+        <>
+          <textarea
+            placeholder="Assertion"
+            value={form.assertion[langMode === "EN" ? "english" : "hindi"]}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                assertion: {
+                  ...form.assertion,
+                  [langMode === "EN" ? "english" : "hindi"]:
+                    e.target.value,
+                },
+              })
+            }
+            className="w-full border rounded-xl p-3"
+          />
+          <textarea
+            placeholder="Reason"
+            value={form.reason[langMode === "EN" ? "english" : "hindi"]}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                reason: {
+                  ...form.reason,
+                  [langMode === "EN" ? "english" : "hindi"]:
+                    e.target.value,
+                },
+              })
+            }
+            className="w-full border rounded-xl p-3"
+          />
+        </>
+      ) : (
+        <textarea
+          placeholder="Question"
+          value={form.questionText[langMode === "EN" ? "english" : "hindi"]}
+          onChange={(e) =>
+            setForm({
+              ...form,
+              questionText: {
+                ...form.questionText,
+                [langMode === "EN" ? "english" : "hindi"]:
+                  e.target.value,
+              },
+            })
+          }
+          className="w-full border rounded-xl p-3"
+        />
+      )}
+
+      {/* Options */}
+      {form.options.map((opt, i) => (
+        <div key={opt.id} className="flex gap-3 items-center">
+          <input
+            type={form.type === "MSQ" ? "checkbox" : "radio"}
+            checked={form.correctAnswers.includes(opt.id)}
+            onChange={() => toggleCorrect(opt.id)}
+          />
+          <input
+            placeholder={`Option ${opt.id}`}
+            value={opt.text[langMode === "EN" ? "english" : "hindi"]}
+            onChange={(e) =>
+              handleOptionChange(
+                i,
+                langMode === "EN" ? "english" : "hindi",
+                e.target.value
+              )
+            }
+            className="flex-1 border rounded-xl p-3"
+          />
+        </div>
+      ))}
+
+      {/* MATH Image */}
+      {form.type === "MATH" && (
+        <input
+          type="file"
+          accept="image/*"
+          onChange={(e) => setImageFile(e.target.files[0])}
+          className="border rounded-xl p-3"
+        />
+      )}
+
+      {/* Marks */}
+      <div className="grid md:grid-cols-2 gap-4">
+        <input
+          type="number"
+          placeholder="Marks"
+          value={form.marks}
+          onChange={(e) =>
+            setForm({ ...form, marks: e.target.value })
+          }
+          className="border rounded-xl p-3"
+        />
+        <input
+          type="number"
+          placeholder="Negative Marks"
+          value={form.negativeMarks}
+          onChange={(e) =>
+            setForm({ ...form, negativeMarks: e.target.value })
+          }
+          className="border rounded-xl p-3"
+        />
+      </div>
+
+      {/* Submit */}
+      <button
+        onClick={handleSubmitNormal}
+        disabled={submitting}
+        className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl"
+      >
+        {editId ? "Update Question" : "Create Question"}
+      </button>
+    </>
+  ) : (
+    <>
+      {/* Passage Builder */}
+      <textarea
+        placeholder="Passage Text"
+        value={passage.passageText[langMode === "EN" ? "english" : "hindi"]}
+        onChange={(e) =>
+          setPassage({
+            ...passage,
+            passageText: {
+              ...passage.passageText,
+              [langMode === "EN" ? "english" : "hindi"]:
+                e.target.value,
+            },
+          })
+        }
+        className="w-full border rounded-xl p-3"
+      />
+
+      <button
+        onClick={addPassageQuestion}
+        className="bg-slate-900 text-white px-4 py-2 rounded-xl"
+      >
+        Add Sub Question
+      </button>
+
+      {passage.passageQuestions.map((q, index) => (
+        <div key={index} className="border rounded-xl p-4 space-y-3">
+          <input
+            placeholder="Sub Question"
+            value={q.questionText[langMode === "EN" ? "english" : "hindi"]}
+            onChange={(e) =>
+              updatePassageQuestion(index, "questionText", {
+                ...q.questionText,
+                [langMode === "EN" ? "english" : "hindi"]:
+                  e.target.value,
+              })
+            }
+            className="w-full border rounded-lg p-2"
+          />
+
+          {q.options.map((opt, i) => (
+            <div key={opt.id} className="flex gap-3 items-center">
+              <input
+                type={q.type === "MSQ" ? "checkbox" : "radio"}
+                checked={q.correctAnswers.includes(opt.id)}
+                onChange={() =>
+                  togglePassageCorrect(index, opt.id)
+                }
+              />
+              <input
+                placeholder={`Option ${opt.id}`}
+                value={opt.text[langMode === "EN" ? "english" : "hindi"]}
+                onChange={(e) =>
+                  updatePassageOption(
+                    index,
+                    i,
+                    langMode === "EN" ? "english" : "hindi",
+                    e.target.value
+                  )
+                }
+                className="flex-1 border rounded-lg p-2"
+              />
+            </div>
+          ))}
+
+          <button
+            onClick={() => removePassageQuestion(index)}
+            className="text-red-600 text-xs font-bold"
+          >
+            Remove
+          </button>
+        </div>
+      ))}
+
+      <button
+        onClick={handleSubmitPassage}
+        className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl"
+      >
+        {editId ? "Update Passage" : "Create Passage"}
+      </button>
+    </>
+  )}
+</div>
+
+
+{/* ---------------- QUESTIONS TABLE ---------------- */}
+<div className="bg-white rounded-[1.5rem] border border-slate-200 shadow-sm p-4 space-y-3">
+  <h2 className="text-lg font-black text-slate-900">
+    Questions Library
+  </h2>
+
+  {loading ? (
+    <p>Loading...</p>
+  ) : (
+    questions.map((q) => (
+      <div
+        key={q._id}
+        className="border rounded-xl p-3 flex justify-between items-center"
+      >
+        <div>
+          <p className="font-bold">{q.type}</p>
+          <p className="text-sm text-slate-500">
+            {q.type === "PASSAGE"
+              ? q.passageText?.english
+              : q.questionText?.english}
+          </p>
         </div>
 
-        <ConfirmDialog
-          open={Boolean(deleteId)}
-          title="Delete question?"
-          description="This action cannot be undone."
-          confirmText="Yes, Delete"
-          cancelText="Cancel"
-          danger
-          loading={deleteLoading}
-          onConfirm={confirmDelete}
-          onCancel={cancelDelete}
-        />
+        <div className="flex gap-2">
+          <button
+            onClick={() => handleEdit(q)}
+            className="text-blue-600 text-xs font-bold"
+          >
+            Edit
+          </button>
+          <button
+            onClick={() => setDeleteId(q._id)}
+            className="text-red-600 text-xs font-bold"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    ))
+  )}
+</div>
+
+          {/* 
+            ⛔ STEP 6 (Render Sections)
+            Header
+            Controls
+            Forms
+            Table
+          */}
+
+        </div>
+
+        {/* 
+          ⛔ STEP 7 (Confirm Dialog)
+        */}
+
+        {/* =========================================================
+   7️⃣ CONFIRM DELETE DIALOG
+========================================================= */}
+
+<ConfirmDialog
+  open={Boolean(deleteId)}
+  title="Delete Question?"
+  description="This action cannot be undone. The question and its image (if any) will be permanently deleted."
+  confirmText="Yes, Delete"
+  cancelText="Cancel"
+  danger
+  loading={deleteLoading}
+  onConfirm={handleDelete}
+  onCancel={() => {
+    if (!deleteLoading) setDeleteId(null);
+  }}
+/>
+
       </main>
     </div>
   );

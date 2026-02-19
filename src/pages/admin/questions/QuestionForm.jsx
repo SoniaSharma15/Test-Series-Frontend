@@ -432,7 +432,25 @@ function QuestionForm(
         ))}
       </div>
 
-      <button
+      {/* <button
+        type="button"
+        onClick={handleSubmitPassage}
+        disabled={submitting}
+        className="w-full rounded-2xl bg-blue-600 text-white py-3.5 font-black text-[11px] uppercase tracking-[0.22em] shadow-lg shadow-blue-100 hover:bg-blue-700 active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {submitting ? "Saving..." : editId ? "Update Passage" : "Create Passage"}
+      </button> */}
+
+       <div className="flex flex-col sm:flex-row gap-5">
+  <button
+    type="button"
+    onClick={handleDiscard}
+    className="w-full sm:w-auto rounded-2xl bg-white border border-slate-200 px-5 py-3 font-black text-[11px] uppercase tracking-[0.22em] text-slate-700 hover:bg-slate-50 active:scale-[0.99] transition"
+  >
+    Discard
+  </button>
+
+ <button
         type="button"
         onClick={handleSubmitPassage}
         disabled={submitting}
@@ -440,6 +458,7 @@ function QuestionForm(
       >
         {submitting ? "Saving..." : editId ? "Update Passage" : "Create Passage"}
       </button>
+</div>
     </>
   )}
 </div>

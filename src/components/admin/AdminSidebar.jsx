@@ -24,7 +24,7 @@ export default function AdminSidebar() {
 
   const handleLogout = () => {
     logout();
-    navigate("/login");
+    navigate("/");
   };
 
   const linkClass = ({ isActive }) =>

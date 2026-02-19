@@ -1,7 +1,3 @@
-/* =====================================================
-   1️⃣ IMPORTS
-===================================================== */
-
 import {
   useEffect,
   useState,
@@ -15,6 +11,8 @@ import {
 } from "react-router-dom";
 
 import axios from "../../services/axiosInstance";
+import QuestionPanel from "../../components/student/exam/QuestionPanel";
+import Palette from "../../components/student/exam/Palette";
 
 
 /* =====================================================
@@ -64,6 +62,8 @@ export default function ExamWindow() {
   const heartbeatRef = useRef(null);
   const examEndRef = useRef(null);
   const submittingRef = useRef(false);
+  const answersRef = useRef({});
+
 
   const fullscreenHandlerRef = useRef(null);
 const visibilityHandlerRef = useRef(null);
@@ -184,6 +184,22 @@ const [showWarning, setShowWarning] = useState(false);
       cleanup();
     };
   }, []);
+
+  useEffect(() => {
+  if (!currentQuestion) return;
+
+  setVisitedSet((prev) => {
+    const updated = new Set(prev);
+    updated.add(currentQuestion.id);
+    return updated;
+  });
+}, [currentQuestion]);
+
+
+  useEffect(() => {
+  answersRef.current = answersMap;
+}, [answersMap]);
+
 
   const initExam = async () => {
     try {
@@ -440,8 +456,8 @@ const cleanup = () => {
   const buildPayload = () => {
     const answers = [];
 
-    Object.keys(answersMap).forEach((key) => {
-      const selected = answersMap[key];
+Object.keys(answersRef.current).forEach((key) => {
+const selected = answersRef.current[key];
 
       if (!selected || !selected.length) return;
 
@@ -611,205 +627,35 @@ return (
 
 
       {/* ===== QUESTION PANEL ===== */}
-      <div className="flex-1 bg-white overflow-y-auto">
-        {currentQuestion && (
-          <div className="max-w-4xl mx-auto p-8">
+     <QuestionPanel
+  currentQuestion={currentQuestion}
+  currentIndex={currentIndex}
+  totalQuestions={flatQuestions.length}
+  answersMap={answersMap}
+  language={language}
+  selectOption={selectOption}
+  clearAnswer={clearAnswer}
+  goToNext={goToNext}
+  goToPrevious={goToPrevious}
+  handleSubmit={handleSubmit}
+  toggleReview={toggleReview}   // ✅
+  reviewSet={reviewSet}         // ✅
+/>
 
-            {/* Question Header */}
-            <div className="flex justify-between items-center mb-6">
-              <span className="text-xs font-black text-slate-500 uppercase">
-                Question {currentIndex + 1}
-              </span>
 
-              <div className="text-xs font-bold text-slate-600">
-                +{currentQuestion.marks} | -{currentQuestion.negativeMarks}
-              </div>
-            </div>
-
-            {/* Question Text */}
-            {currentQuestion.type !== "ASSERTION_REASON" && (
-              <h2 className="text-xl font-bold text-slate-800 leading-relaxed mb-8">
-                {currentQuestion.questionText?.[language] ||
-                 currentQuestion.questionText?.english}
-              </h2>
-            )}
-
-            {/* Assertion Reason Block */}
-            {currentQuestion.type === "ASSERTION_REASON" && (
-              <div className="mb-8 space-y-4">
-                <div className="p-4 bg-slate-50 rounded-lg">
-                  <strong>Assertion:</strong><br />
-                  {currentQuestion.assertion?.[language] ||
-                   currentQuestion.assertion?.english}
-                </div>
-
-                <div className="p-4 bg-slate-50 rounded-lg">
-                  <strong>Reason:</strong><br />
-                  {currentQuestion.reason?.[language] ||
-                   currentQuestion.reason?.english}
-                </div>
-              </div>
-            )}
-
-            {/* OPTIONS */}
-            <div className="space-y-4">
-              {currentQuestion.options.map((opt) => {
-                const selected =
-                  answersMap[currentQuestion.id]?.includes(opt.id);
-
-                const isMSQ = currentQuestion.type === "MSQ";
-
-                return (
-                  <button
-                    key={opt.id}
-                    onClick={() => selectOption(opt.id)}
-                    className={`w-full text-left rounded-xl border-2 px-6 py-4 flex items-center gap-4 transition-all ${
-                      selected
-                        ? "border-blue-600 bg-blue-50"
-                        : "border-slate-200 hover:border-blue-300"
-                    }`}
-                  >
-
-                    {/* Radio / Checkbox */}
-                    <div className="shrink-0">
-                      {isMSQ ? (
-                        <div className={`h-5 w-5 border rounded ${
-                          selected ? "bg-blue-600" : "bg-white"
-                        }`} />
-                      ) : (
-                        <div className={`h-5 w-5 border rounded-full ${
-                          selected ? "bg-blue-600" : "bg-white"
-                        }`} />
-                      )}
-                    </div>
-
-                    <div className="flex-1 font-semibold text-slate-700">
-                      <span className="mr-2 font-black">
-                        {opt.id}.
-                      </span>
-                      {opt.text?.[language] || opt.text?.english}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Bottom Controls */}
-            <div className="mt-10 flex justify-between">
-
-              <button
-                onClick={clearAnswer}
-                className="px-6 py-2 border rounded-lg"
-              >
-                Clear
-              </button>
-
-              <div className="flex gap-4">
-                <button
-                  disabled={currentIndex === 0}
-                  onClick={goToPrevious}
-                  className="px-6 py-2 border rounded-lg"
-                >
-                  Previous
-                </button>
-
-                {currentIndex < flatQuestions.length - 1 ? (
-                  <button
-                    onClick={goToNext}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg"
-                  >
-                    Save & Next
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => handleSubmit(false)}
-                    className="px-6 py-2 bg-rose-600 text-white rounded-lg"
-                  >
-                    Submit Exam
-                  </button>
-                )}
-              </div>
-            </div>
-
-          </div>
-        )}
-      </div>
 
 
       {/* ===== PALETTE ===== */}
-      <div className={`
-        ${isSidebarOpen ? "translate-x-0" : "translate-x-full"}
-        md:translate-x-0
-        fixed md:relative right-0 top-0 bottom-0
-        w-[280px] md:w-80
-        bg-[#FBFCFE]
-        border-l border-slate-200
-        flex flex-col
-        transition-transform duration-300
-      `}>
-
-        <div className="p-6 flex-1 overflow-y-auto">
-
-          <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-6">
-            Navigation
-          </h3>
-
-          {/* Question Grid */}
-          <div className="grid grid-cols-4 gap-3 mb-8">
-            {flatQuestions.map((q, idx) => {
-
-              const answered = isAnswered(q.id);
-              const visited = visitedSet.has(q.id);
-              const review = reviewSet.has(q.id);
-              const isCurrent = idx === currentIndex;
-
-              let bg = "bg-slate-100 text-slate-400";
-
-              if (review) bg = "bg-purple-600 text-white";
-              else if (answered) bg = "bg-green-600 text-white";
-              else if (visited) bg = "bg-rose-500 text-white";
-
-              return (
-                <button
-                  key={q.id}
-                  onClick={() => setCurrentIndex(idx)}
-                  className={`h-10 rounded-lg font-bold text-xs ${bg} ${
-                    isCurrent ? "ring-2 ring-blue-500" : ""
-                  }`}
-                >
-                  {idx + 1}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Progress */}
-          <div className="bg-white p-4 rounded-lg border">
-            <div className="text-xs font-bold mb-2">
-              Attempted: {Object.keys(answersMap).length} / {flatQuestions.length}
-            </div>
-
-            <div className="w-full bg-slate-100 h-2 rounded">
-              <div
-                className="bg-blue-600 h-2 rounded"
-                style={{
-                  width: `${(Object.keys(answersMap).length / flatQuestions.length) * 100}%`
-                }}
-              />
-            </div>
-          </div>
-
-        </div>
-
-        <div className="p-6 border-t">
-          <button
-            onClick={() => handleSubmit(false)}
-            className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold text-xs uppercase"
-          >
-            Final Submit
-          </button>
-        </div>
-      </div>
+      
+<Palette
+  flatQuestions={flatQuestions}
+  currentIndex={currentIndex}
+  setCurrentIndex={setCurrentIndex}
+  answersMap={answersMap}
+  visitedSet={visitedSet}
+  reviewSet={reviewSet}
+  handleSubmit={handleSubmit}
+/>
 
     </div>
     {showWarning && (

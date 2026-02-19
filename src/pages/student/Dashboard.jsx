@@ -25,8 +25,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchDashboard();
-    const interval = setInterval(fetchDashboard, 30000);
-    return () => clearInterval(interval);
+    // Removed the 30-second interval logic from here
   }, []);
 
   const fetchDashboard = async () => {
@@ -96,20 +95,20 @@ export default function Dashboard() {
             </div>
 
             <div className="grid grid-cols-1 gap-4">
-{data?.enrolledSeries
-  ?.filter((series) => {
-    if (!series.expiryDate) return true;
-    const today = new Date();
-    const expiry = new Date(series.expiryDate);
-    return expiry >= today;
-  })
-  .map((series) => (
-                <BladeCard
-                  key={series._id}
-                  series={series}
-                  navigate={navigate}
-                />
-              ))}
+              {data?.enrolledSeries
+                ?.filter((series) => {
+                  if (!series.expiryDate) return true;
+                  const today = new Date();
+                  const expiry = new Date(series.expiryDate);
+                  return expiry >= today;
+                })
+                .map((series) => (
+                  <BladeCard
+                    key={series._id}
+                    series={series}
+                    navigate={navigate}
+                  />
+                ))}
             </div>
           </div>
 

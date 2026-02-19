@@ -3,7 +3,8 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
 import axios from "../../services/axiosInstance";
 import AdminSidebar from "../../components/admin/AdminSidebar";
-
+import ConfirmDialog from "../../components/ui/ConfirmDialog";
+import QuestionsLibrary from "./questions/QuestionLibrary"
 export default function QuestionsTablePage() {
   const { testId } = useParams();
   const navigate = useNavigate();
@@ -11,6 +12,9 @@ export default function QuestionsTablePage() {
 
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deleteId, setDeleteId] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [langMode, setLangMode] = useState("EN"); // EN | HI
 
   const fetchQuestions = async () => {
     setLoading(true);
@@ -50,10 +54,21 @@ export default function QuestionsTablePage() {
     navigate(`/admin/questions/${testId}?${qs.toString()}`);
   };
 
-  const handleDelete = async (id) => {
-    if (!id) return;
-    await axios.delete(`/questions/${id}`);
-    fetchQuestions();
+   /* ---------- Handle Delete ---------- */
+  const handleDelete = async () => {
+    if (!deleteId) return;
+
+    try {
+      setDeleteLoading(true);
+      await axios.delete(`/questions/${deleteId}`);
+      toast.success("Question deleted");
+      setDeleteId(null);
+      fetchQuestions();
+    } catch (err) {
+      toast.error("Delete failed");
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
   return (
@@ -64,8 +79,28 @@ export default function QuestionsTablePage() {
           <h2 className="text-2xl font-bold text-blue-900">Questions</h2>
           <p className="text-sm text-slate-500">All questions for this test</p>
         </div>
-
-        
+{/* Question Library */}
+<QuestionsLibrary
+  loading={loading}
+  questions={questions}
+  fetchQuestions={fetchQuestions}
+  handleEdit={handleEdit}
+  setDeleteId={setDeleteId}
+  langMode={langMode}
+/>
+        <ConfirmDialog
+          open={Boolean(deleteId)}
+          title="Delete Question?"
+          description="This action cannot be undone. The question and its image (if any) will be permanently deleted."
+          confirmText="Yes, Delete"
+          cancelText="Cancel"
+          danger
+          loading={deleteLoading}
+          onConfirm={handleDelete}
+          onCancel={() => {
+            if (!deleteLoading) setDeleteId(null);
+          }}
+        />
       </main>
     </div>
   );

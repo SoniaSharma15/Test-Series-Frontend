@@ -44,10 +44,17 @@ const ProtectedRoute = ({ children, role }) => {
 function App() {
   return (
     <>
-      <Navbar />
       <Routes>
         {/* Public Routes */}
-        <Route path="/" element={<Home />} />
+        <Route
+        path="/"
+        element={
+          <>
+            <Navbar />
+            <Home />
+          </>
+        }
+      />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />

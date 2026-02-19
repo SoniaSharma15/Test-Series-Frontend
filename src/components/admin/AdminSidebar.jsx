@@ -79,7 +79,7 @@ export default function AdminSidebar() {
             </div>
             <div>
               <h2 className="text-xl font-black text-slate-900 leading-none tracking-tighter italic">
-                The<span className="text-blue-600">Brillient Bihar</span>
+                The<span className="text-blue-600">Brilliant Bihar</span>
               </h2>
               <p className="text-[9px] uppercase tracking-[0.3em] text-slate-400 font-black mt-1">
                 Governance Suite

@@ -114,7 +114,7 @@ export default function useQuestionForm({ testId, isHindiOnly }) {
   const canSubmitNormal = useMemo(() => {
     if (isMSQ) return validateMSQ(form, isHindiOnly);
     if (isMCQ || isMath) return validateMCQorMATH(form, isHindiOnly);
-    if (isAR) return validateAR(form);
+    if (isAR) return validateAR(form, isHindiOnly);
     return true;
   }, [form, isHindiOnly, isMCQ, isMSQ, isMath, isAR]);
 
@@ -359,7 +359,7 @@ export default function useQuestionForm({ testId, isHindiOnly }) {
         correctAnswer: "",
         correctAnswerHi: "",
         marks: q.marks ?? "",
-        negativeMarks: String(neg ?? 0),
+        negativeMarks: String(neg ?? 0.33),
       });
       return;
     }
@@ -395,9 +395,9 @@ export default function useQuestionForm({ testId, isHindiOnly }) {
   }, []);
 
   const buildNormalPayload = useCallback(() => {
-    const marks = String(form.marks ?? "").trim() === "" ? 0 : Number(form.marks);
+    const marks = String(form.marks ?? "").trim() === "" ? 2 : Number(form.marks);
     const negativeMarks =
-      String(form.negativeMarks ?? "").trim() === "" ? 0 : Number(form.negativeMarks);
+      String(form.negativeMarks ?? "").trim() === "" ? 0.33 : Number(form.negativeMarks);
 
     const enQT = String(form.questionText || "").trim();
     const hiQT = String(form.questionTextHi || "").trim();
@@ -512,7 +512,7 @@ export default function useQuestionForm({ testId, isHindiOnly }) {
           fd.append("lang", String(payload.lang || "english")); // ✅ IMPORTANT
           fd.append("questionText", JSON.stringify(payload.questionText || {}));
           fd.append("options", JSON.stringify(payload.options || []));
-          fd.append("negativeMarks", String(payload.negativeMarks ?? 0));
+          fd.append("negativeMarks", String(payload.negativeMarks ?? 0.33));
           fd.append("correctAnswer", String(payload.correctAnswer || ""));
           fd.append("marks", String(payload.marks ?? 0));
           fd.append("image", form.questionImageFile);

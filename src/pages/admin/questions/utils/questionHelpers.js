@@ -86,13 +86,22 @@ export const validateTheory = (form, isHindiOnly) => {
   return hasQ && hasMarks && validateNeg(form.negativeMarks);
 };
 
-export const validateAR = (form) => {
-  const a = String(form.assertionText || "").trim().length > 0;
-  const r = String(form.reasonText || "").trim().length > 0;
+export const validateAR = (form, isHindiOnly = false) => {
+  const assertionEn = String(form.assertionText || "").trim();
+  const reasonEn = String(form.reasonText || "").trim();
+  const assertionHi = String(form.assertionTextHi || "").trim();
+  const reasonHi = String(form.reasonTextHi || "").trim();
+
+  const a = isHindiOnly ? (assertionHi || assertionEn) : assertionEn;
+  const r = isHindiOnly ? (reasonHi || reasonEn) : reasonEn;
+
+  const hasA = String(a || "").trim().length > 0;
+  const hasR = String(r || "").trim().length > 0;
+
   const idx = String(form.correctAnswerIndex || "").trim();
   const hasIdx = idx !== "" && Number(idx) >= 0 && Number(idx) <= 3;
   const hasMarks = String(form.marks || "").trim().length > 0;
-  return a && r && hasIdx && hasMarks && validateNeg(form.negativeMarks);
+  return hasA && hasR && hasIdx && hasMarks && validateNeg(form.negativeMarks);
 };
 
 export const getBasePassageText = ({ passageText, passageTextHi, isHindiOnly }) => {
@@ -112,11 +121,17 @@ export const validatePassage = ({ basePassageText, passageSubs, isHindiOnly }) =
     if (!validateNeg(s.negativeMarks)) return false;
 
     if (s.type === "ASSERTION_REASON") {
-      const a = String(s.assertionText || "").trim().length > 0;
-      const r = String(s.reasonText || "").trim().length > 0;
+      const assertionEn = String(s.assertionText || "").trim();
+      const reasonEn = String(s.reasonText || "").trim();
+      const assertionHi = String(s.assertionTextHi || "").trim();
+      const reasonHi = String(s.reasonTextHi || "").trim();
+
+      const a = isHindiOnly ? (assertionHi || assertionEn) : assertionEn;
+      const r = isHindiOnly ? (reasonHi || reasonEn) : reasonEn;
+
       const idx = String(s.correctAnswerIndex || "").trim();
       const hasIdx = idx !== "" && Number(idx) >= 0 && Number(idx) <= 3;
-      if (!(a && r && hasIdx)) return false;
+      if (!(String(a || "").trim().length > 0 && String(r || "").trim().length > 0 && hasIdx)) return false;
     } else if (s.type === "MSQ") {
       // ✅ MSQ validation: need multiple correct answers
       const qText = pickQuestionText(s, isHindiOnly);

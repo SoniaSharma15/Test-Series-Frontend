@@ -246,4 +246,3 @@ function BladeCard({ series, navigate }) {
     </div>
   );
 }
-

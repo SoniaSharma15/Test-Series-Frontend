@@ -23,7 +23,11 @@ function safeDate(v) {
   if (!v) return "—";
   const d = new Date(v);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  return d.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 export default function AdminDashboard() {
@@ -52,13 +56,16 @@ export default function AdminDashboard() {
 
   // ✅ Build graph data from recentAttempts
   const graphData = useMemo(() => {
-    const attempts = Array.isArray(data?.recentAttempts) ? data.recentAttempts : [];
+    const attempts = Array.isArray(data?.recentAttempts)
+      ? data.recentAttempts
+      : [];
 
     return attempts
       .map((a) => {
         // score key fallback (depends on your Attempt model)
         const score = a?.score ?? a?.marks ?? a?.percent ?? a?.accuracy ?? null;
-        const date = a?.submittedAt ?? a?.createdAt ?? a?.attemptedAt ?? a?.date ?? null;
+        const date =
+          a?.submittedAt ?? a?.createdAt ?? a?.attemptedAt ?? a?.date ?? null;
 
         return { date, score: Number(score) };
       })
@@ -66,7 +73,9 @@ export default function AdminDashboard() {
       .reverse();
   }, [data]);
 
-  const recentAttempts = Array.isArray(data?.recentAttempts) ? data.recentAttempts : [];
+  const recentAttempts = Array.isArray(data?.recentAttempts)
+    ? data.recentAttempts
+    : [];
 
   if (loading) {
     return (
@@ -104,10 +113,30 @@ export default function AdminDashboard() {
 
           {/* KPI Grid */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <KpiCard title="Total Students" value={data?.totalStudents ?? 0} icon={<Users size={18} />} tone="blue" />
-            <KpiCard title="Test Series" value={data?.totalTestSeries ?? 0} icon={<Layers size={18} />} tone="emerald" />
-            <KpiCard title="Total Tests" value={data?.totalTests ?? 0} icon={<BookOpen size={18} />} tone="amber" />
-            <KpiCard title="Total Revenue" value={`₹${safeMoney(data?.totalRevenue ?? 0)}`} icon={<IndianRupee size={18} />} tone="slate" />
+            <KpiCard
+              title="Total Students"
+              value={data?.totalStudents ?? 0}
+              icon={<Users size={18} />}
+              tone="blue"
+            />
+            <KpiCard
+              title="Test Series"
+              value={data?.totalTestSeries ?? 0}
+              icon={<Layers size={18} />}
+              tone="emerald"
+            />
+            <KpiCard
+              title="Total Tests"
+              value={data?.totalTests ?? 0}
+              icon={<BookOpen size={18} />}
+              tone="amber"
+            />
+            <KpiCard
+              title="Total Revenue"
+              value={`₹${safeMoney(data?.totalRevenue ?? 0)}`}
+              icon={<IndianRupee size={18} />}
+              tone="slate"
+            />
           </div>
 
           {/* Main grid */}
@@ -154,9 +183,11 @@ export default function AdminDashboard() {
                   {recentAttempts.slice(0, 5).map((a) => {
                     const studentName = a?.studentId?.name || "Student";
                     const studentEmail = a?.studentId?.email || "—";
-                    const testName = a?.testId?.name || a?.testId?.title || "Test";
+                    const testName =
+                      a?.testId?.name || a?.testId?.title || "Test";
                     const when = safeDate(a?.submittedAt ?? a?.createdAt);
-                    const score = a?.score ?? a?.marks ?? a?.percent ?? a?.accuracy ?? "—";
+                    const score =
+                      a?.score ?? a?.marks ?? a?.percent ?? a?.accuracy ?? "—";
 
                     return (
                       <div
@@ -166,7 +197,8 @@ export default function AdminDashboard() {
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <p className="text-sm font-black text-slate-900 truncate">
-                              {studentName} <span className="text-slate-400">•</span>{" "}
+                              {studentName}{" "}
+                              <span className="text-slate-400">•</span>{" "}
                               <span className="text-slate-700">{testName}</span>
                             </p>
                             <p className="text-xs font-semibold text-slate-500 mt-1 truncate">
@@ -183,11 +215,10 @@ export default function AdminDashboard() {
                               Score
                             </p>
                             <p className="text-xl font-black text-slate-900">
-  {Number.isFinite(Number(score))
-    ? Number(score).toFixed(2)
-    : score}
-</p>
-
+                              {Number.isFinite(Number(score))
+                                ? Number(score).toFixed(2)
+                                : score}
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -212,7 +243,9 @@ function EmptyBox({ text }) {
   return (
     <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-10 text-center">
       <p className="text-slate-500 font-black text-sm">{text}</p>
-      <p className="text-slate-400 text-xs font-semibold mt-1">Activity will appear here.</p>
+      <p className="text-slate-400 text-xs font-semibold mt-1">
+        Activity will appear here.
+      </p>
     </div>
   );
 }
@@ -227,7 +260,9 @@ function KpiCard({ title, value, icon, tone }) {
 
   return (
     <div className="bg-white p-5 rounded-2xl border border-slate-200">
-      <div className={`${themes[tone]} w-10 h-10 rounded-xl flex items-center justify-center mb-3 border`}>
+      <div
+        className={`${themes[tone]} w-10 h-10 rounded-xl flex items-center justify-center mb-3 border`}
+      >
         {icon}
       </div>
       <p className="text-slate-400 text-[8px] font-black uppercase tracking-widest leading-none">

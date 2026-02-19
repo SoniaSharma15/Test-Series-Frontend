@@ -47,8 +47,8 @@ export default function PassageForm({
         questionImageFile: null,
         questionImageName: "",
 
-        marks: "",
-        negativeMarks: "",
+        marks: "2",
+        negativeMarks: "0.33",
       },
     ]);
 
@@ -337,7 +337,10 @@ export default function PassageForm({
                     <label className={labelCls}>Marks</label>
                     <input
                       type="number"
-                      value={s.marks ?? ""}
+                      placeholder="2"
+                      value={s.marks ?? "2"}
+                      min={0}
+                      step="0.25"
                       onChange={(e) => updateSub(idx, { marks: e.target.value })}
                       className={inputCls}
                       required
@@ -346,15 +349,15 @@ export default function PassageForm({
                   </div>
 
                   <div className="sm:col-span-4">
-                    <label className={labelCls}>Negative (optional)</label>
+                    <label className={labelCls}>Negative</label>
                     <input
                       type="number"
                       min="0"
-                      step="0.25"
-                      value={s.negativeMarks ?? ""}
+                      step="0.01"
+                      placeholder="0.33"
+                      value={s.negativeMarks ?? "0.33"}
                       onChange={(e) => updateSub(idx, { negativeMarks: e.target.value })}
                       className={inputCls}
-                      placeholder="e.g. 0.25"
                       disabled={submitting}
                     />
                   </div>

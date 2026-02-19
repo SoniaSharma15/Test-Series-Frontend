@@ -3,7 +3,6 @@ import { getEnrollments } from "../../services/enrollmentService";
 import {
   Users,
   CheckCircle2,
-  XCircle,
   RefreshCcw,
   IndianRupee,
   Search,
@@ -12,7 +11,6 @@ import {
   BadgeCheck,
   BadgeDollarSign,
   X,
-  ShieldAlert,
 } from "lucide-react";
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import toast from "react-hot-toast";
@@ -34,12 +32,10 @@ export default function Enrollments() {
   // stats (from backend)
   const [statsByStatus, setStatsByStatus] = useState([]);
   const [statsBySource, setStatsBySource] = useState([]);
-  const [expiredCount, setExpiredCount] = useState(0);
 
   // filters
   const [statusFilter, setStatusFilter] = useState("all"); // all|active|cancelled|refunded
   const [sourceFilter, setSourceFilter] = useState("all"); // all|admin|payment
-  const [expiredOnly, setExpiredOnly] = useState(false); // boolean
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 450);
 
@@ -56,8 +52,9 @@ export default function Enrollments() {
         search: debouncedSearch,
         startDate,
         endDate,
-        expired: expiredOnly ? "true" : "false",
+        // ✅ expired removed
       });
+
       const payload = res?.data;
 
       setData(Array.isArray(payload?.enrollments) ? payload.enrollments : []);
@@ -66,7 +63,6 @@ export default function Enrollments() {
       const s = payload?.stats || {};
       setStatsByStatus(Array.isArray(s?.byStatus) ? s.byStatus : []);
       setStatsBySource(Array.isArray(s?.bySource) ? s.bySource : []);
-      setExpiredCount(Number(s?.expiredCount || 0));
     } catch (error) {
       console.error("Failed to fetch enrollments", error);
       toast.error("Failed to fetch enrollments");
@@ -74,14 +70,13 @@ export default function Enrollments() {
       setRevenue(0);
       setStatsByStatus([]);
       setStatsBySource([]);
-      setExpiredCount(0);
     }
   };
 
   useEffect(() => {
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, sourceFilter, debouncedSearch, startDate, endDate, expiredOnly]);
+  }, [statusFilter, sourceFilter, debouncedSearch, startDate, endDate]);
 
   const getStatusCount = (status) =>
     statsByStatus.find((s) => s._id === status)?.count || 0;
@@ -112,7 +107,6 @@ export default function Enrollments() {
   const clearAllFilters = () => {
     setStatusFilter("all");
     setSourceFilter("all");
-    setExpiredOnly(false);
     setSearch("");
     setStartDate("");
     setEndDate("");
@@ -125,22 +119,15 @@ export default function Enrollments() {
       return;
     }
     if (kind === "active") {
-      setExpiredOnly(false);
       setStatusFilter("active");
       return;
     }
     if (kind === "admin") {
-      setExpiredOnly(false);
       setSourceFilter("admin");
       return;
     }
     if (kind === "payment") {
-      setExpiredOnly(false);
       setSourceFilter("payment");
-      return;
-    }
-    if (kind === "expired") {
-      setExpiredOnly(true);
       return;
     }
   };
@@ -179,14 +166,14 @@ export default function Enrollments() {
           </div>
 
           {/* Stats Grid (clickable) */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6 mb-10">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 mb-10">
             <StatSmallCard
               label="Total Enrollments"
               value={total}
               icon={<Users size={20} />}
               color="blue"
               onClick={() => onCardClick("total")}
-              active={statusFilter === "all" && sourceFilter === "all" && !expiredOnly}
+              active={statusFilter === "all" && sourceFilter === "all"}
             />
             <StatSmallCard
               label="Active"
@@ -211,15 +198,6 @@ export default function Enrollments() {
               color="amber"
               onClick={() => onCardClick("payment")}
               active={sourceFilter === "payment"}
-            />
-            <StatSmallCard
-              label="Expired Access"
-              value={expiredCount}
-              icon={<ShieldAlert size={20} />}
-              color="red"
-              onClick={() => onCardClick("expired")}
-              active={expiredOnly}
-              danger
             />
           </div>
 
@@ -278,18 +256,6 @@ export default function Enrollments() {
                     <option value="payment">Payment</option>
                   </select>
                 </div>
-
-                {/* Expired toggle */}
-                <button
-                  type="button"
-                  onClick={() => setExpiredOnly((p) => !p)}
-                  className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-black transition
-                    ${expiredOnly ? "bg-red-600 text-white border-red-600" : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"}`}
-                  title="Show expired only"
-                >
-                  <ShieldAlert size={16} />
-                  Expired
-                </button>
 
                 {/* Clear all */}
                 <button
@@ -351,7 +317,6 @@ export default function Enrollments() {
               <EnrollmentTable
                 enrollments={data}
                 getStatusBadge={getStatusBadge}
-                onRenewed={fetchData}
               />
             </div>
 
@@ -370,7 +335,7 @@ export default function Enrollments() {
   );
 }
 
-// Stats Card (clickable) - compact on mobile
+// Stats Card (clickable)
 function StatSmallCard({ label, value, icon, color, onClick, active, danger }) {
   const colors = {
     blue: "from-blue-500 to-blue-600",
@@ -387,23 +352,19 @@ function StatSmallCard({ label, value, icon, color, onClick, active, danger }) {
         "relative overflow-hidden text-left transition-all duration-200",
         "bg-white/70 backdrop-blur-xl border border-slate-200/60",
         "shadow-[0_4px_20px_rgba(0,0,0,0.04)] hover:shadow-[0_10px_35px_rgba(0,0,0,0.08)]",
-        "rounded-2xl p-3", // ✅ mobile compact
-        "sm:rounded-3xl sm:p-6 sm:hover:-translate-y-1", // ✅ desktop same feel
+        "rounded-2xl p-3 sm:rounded-3xl sm:p-6 sm:hover:-translate-y-1",
         active ? "ring-2 ring-blue-500/30 border-blue-300" : "",
       ].join(" ")}
     >
-      {/* Top row */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-3 min-w-0">
           <div
             className={[
               "shrink-0 flex items-center justify-center text-white shadow-md",
-              "h-9 w-9 rounded-xl", // ✅ mobile
-              "sm:h-12 sm:w-12 sm:rounded-2xl", // ✅ desktop
+              "h-9 w-9 rounded-xl sm:h-12 sm:w-12 sm:rounded-2xl",
               `bg-gradient-to-br ${colors[color]}`,
             ].join(" ")}
           >
-            {/* icon size smaller on mobile */}
             <span className="scale-[0.85] sm:scale-100">{icon}</span>
           </div>
 
@@ -414,8 +375,7 @@ function StatSmallCard({ label, value, icon, color, onClick, active, danger }) {
             <h3
               className={[
                 "mt-1 font-extrabold tracking-tight leading-none",
-                "text-2xl", // ✅ mobile smaller
-                "sm:text-3xl",
+                "text-2xl sm:text-3xl",
                 danger ? "text-red-600" : "text-slate-900",
               ].join(" ")}
             >
@@ -424,25 +384,23 @@ function StatSmallCard({ label, value, icon, color, onClick, active, danger }) {
           </div>
         </div>
 
-     {active ? (
-  <span
-    className="
-      hidden sm:inline-flex
-      absolute top-3 right-3
-      text-[10px] font-black uppercase tracking-widest
-      text-blue-600 bg-blue-50
-      border border-blue-100
-      px-2 py-1 rounded-full
-      z-10
-    "
-  >
-    Active Filter
-  </span>
-) : null}
-
+        {active ? (
+          <span
+            className="
+              hidden sm:inline-flex
+              absolute top-3 right-3
+              text-[10px] font-black uppercase tracking-widest
+              text-blue-600 bg-blue-50
+              border border-blue-100
+              px-2 py-1 rounded-full
+              z-10
+            "
+          >
+            Active Filter
+          </span>
+        ) : null}
       </div>
 
-      {/* Mobile tiny badge (optional) */}
       {active ? (
         <div className="mt-2 sm:hidden">
           <span className="inline-flex text-[9px] font-black uppercase tracking-widest text-blue-700 bg-blue-50 border border-blue-100 px-2 py-1 rounded-full">
@@ -451,15 +409,13 @@ function StatSmallCard({ label, value, icon, color, onClick, active, danger }) {
         </div>
       ) : null}
 
-      {/* Bottom subtle line */}
       <div
         className={[
           "absolute bottom-0 left-0 w-full opacity-70",
-          "h-0.5 sm:h-1", // ✅ thinner on mobile
+          "h-0.5 sm:h-1",
           `bg-gradient-to-r ${colors[color]}`,
         ].join(" ")}
       />
     </button>
   );
 }
-

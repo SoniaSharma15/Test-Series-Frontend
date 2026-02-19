@@ -8,8 +8,8 @@ export const emptyMCQ = () => ({
   optionsHi: ["", "", "", ""],
   correctAnswer: "",
   correctAnswerHi: "",
-  marks: "",
-  negativeMarks: "",
+  marks: "2",
+  negativeMarks: "0.33",
   allowImage: false,
 });
 
@@ -20,8 +20,8 @@ export const emptyMSQ = () => ({
   options: ["", "", "", ""],
   optionsHi: ["", "", "", ""],
   correctAnswers: [], // ✅ multiple correct EN option texts
-  marks: "",
-  negativeMarks: "",
+  marks: "2",
+  negativeMarks: "0.33",
   allowImage: false,
 });
 
@@ -33,8 +33,8 @@ export const emptyMath = () => ({
   optionsHi: ["", "", "", ""],
   correctAnswer: "",
   correctAnswerHi: "",
-  marks: "",
-  negativeMarks: "",
+  marks: "2",
+  negativeMarks: "0.33",
   questionImageFile: null,
   questionImageName: "",
 });
@@ -48,8 +48,8 @@ export const emptyAR = () => ({
   options: [...AR_OPTIONS],
   correctAnswerIndex: "",
   correctAnswer: "",
-  marks: "",
-  negativeMarks: "",
+  marks: "2",
+  negativeMarks: "0.33",
 });
 
 // ✅ PASSAGE sub question template
@@ -76,6 +76,6 @@ export const emptyPassageSub = () => ({
   questionImageFile: null,
   questionImageName: "",
 
-  marks: "",
-  negativeMarks: "",
+  marks: "2",
+  negativeMarks: "0.33",
 });

@@ -3,7 +3,6 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
 import axios from "../../services/axiosInstance";
 import AdminSidebar from "../../components/admin/AdminSidebar";
-import QuestionsTable from "./questions/components/QuestionsTable";
 
 export default function QuestionsTablePage() {
   const { testId } = useParams();
@@ -66,12 +65,7 @@ export default function QuestionsTablePage() {
           <p className="text-sm text-slate-500">All questions for this test</p>
         </div>
 
-        <QuestionsTable
-          loading={loading}
-          questions={questions}
-          onEdit={handleEdit}     // ✅ sends q
-          onDelete={handleDelete}
-        />
+        
       </main>
     </div>
   );

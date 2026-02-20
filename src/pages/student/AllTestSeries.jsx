@@ -36,7 +36,7 @@ export default function AllTestSeries() {
                 </span>
               </div>
 
-              <h1 className="text-4xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+              <h1 className="my-6 md:my-0 text-3xl md:text-4xl font-black text-slate-900 tracking-tight flex items-center gap-2">
                 Explore{" "}
                 <span className="text-blue-600 italic">
                   Test Series
@@ -50,7 +50,7 @@ export default function AllTestSeries() {
           </div>
 
           {/* Grid Section */}
-          <section className="space-y-6">
+          <section className="md:space-y-6">
             <div className="flex items-center gap-3 px-1">
               <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
                 Showing {series.length} Results

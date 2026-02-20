@@ -78,7 +78,13 @@ export default function TestSeriesList() {
       setError("");
       const res = await axios.get("/test-series");
       const payload = res?.data;
-      setSeries(Array.isArray(payload) ? payload : payload?.data && Array.isArray(payload.data) ? payload.data : []);
+      setSeries(
+        Array.isArray(payload)
+          ? payload
+          : payload?.data && Array.isArray(payload.data)
+            ? payload.data
+            : [],
+      );
     } catch {
       setError("Failed to load test series");
       setSeries([]);
@@ -87,20 +93,28 @@ export default function TestSeriesList() {
     }
   };
 
-  // ✅ close dropdown on outside click
   useEffect(() => {
-    const onDocClick = (e) => {
+    const onDocPointerDown = (e) => {
       if (!openMenuId) return;
+
       const btn = buttonRefs.current[openMenuId];
       const menu = menuRefs.current[openMenuId];
-      const inside = (btn && btn.contains(e.target)) || (menu && menu.contains(e.target));
-      if (!inside) setOpenMenuId(null);
+
+      const insideBtn = btn && btn.contains(e.target);
+      const insideMenu = menu && menu.contains(e.target);
+
+      if (!insideBtn && !insideMenu) setOpenMenuId(null);
     };
-    document.addEventListener("mousedown", onDocClick);
-    return () => document.removeEventListener("mousedown", onDocClick);
+
+    document.addEventListener("pointerdown", onDocPointerDown); // ✅ no capture
+
+    return () => {
+      document.removeEventListener("pointerdown", onDocPointerDown);
+    };
   }, [openMenuId]);
 
   // ✅ escape closes menu / modal
+
   useEffect(() => {
     const onKey = (e) => {
       if (e.key !== "Escape") return;
@@ -113,7 +127,9 @@ export default function TestSeriesList() {
 
   const filteredSeries = useMemo(() => {
     const s = Array.isArray(series) ? series : [];
-    const qq = String(q || "").trim().toLowerCase();
+    const qq = String(q || "")
+      .trim()
+      .toLowerCase();
     if (!qq) return s;
     return s.filter((x) => {
       const title = String(x?.title || "").toLowerCase();
@@ -159,7 +175,8 @@ export default function TestSeriesList() {
     const id = openMenuId;
     setOpenMenuId(null);
     setActiveIndex(0);
-    if (id && buttonRefs.current[id]) setTimeout(() => buttonRefs.current[id]?.focus?.(), 0);
+    if (id && buttonRefs.current[id])
+      setTimeout(() => buttonRefs.current[id]?.focus?.(), 0);
   };
 
   const toggleMenu = (id) => {
@@ -279,7 +296,10 @@ export default function TestSeriesList() {
             <div className="flex flex-col sm:flex-row sm:items-center gap-3">
               {/* Search (always visible on all sizes) */}
               <div className="relative w-full sm:w-[320px]">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                <Search
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  size={16}
+                />
                 <input
                   type="text"
                   value={query}
@@ -318,7 +338,7 @@ export default function TestSeriesList() {
           )}
 
           {/* Content */}
-          <div className="bg-white rounded-[1.5rem] sm:rounded-[2.5rem] border border-slate-200/60 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-[1.5rem] sm:rounded-[2.5rem] border border-slate-200/60 shadow-sm overflow-visible lg:overflow-hidden">
             {loading ? (
               <div className="p-16 sm:p-20 flex flex-col items-center justify-center space-y-4">
                 <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full" />
@@ -331,7 +351,9 @@ export default function TestSeriesList() {
                 <div className="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
                   <Layers className="text-slate-200" size={32} />
                 </div>
-                <h3 className="text-lg font-black text-slate-900">No test series found</h3>
+                <h3 className="text-lg font-black text-slate-900">
+                  No test series found
+                </h3>
                 <p className="text-slate-500 mt-2 text-sm">
                   Try a different keyword or create a new series.
                 </p>
@@ -356,7 +378,9 @@ export default function TestSeriesList() {
                               </div>
 
                               <div className="min-w-0">
-                                <p className="font-black text-slate-900 truncate">{item.title}</p>
+                                <p className="font-black text-slate-900 truncate">
+                                  {item.title}
+                                </p>
                                 <p className="text-xs text-slate-500 line-clamp-2 mt-1">
                                   {item.description || "—"}
                                 </p>
@@ -366,13 +390,19 @@ export default function TestSeriesList() {
                             {/* Actions button */}
                             <div className="relative">
                               <button
-                                ref={(el) => (buttonRefs.current[item._id] = el)}
+                                ref={(el) =>
+                                  (buttonRefs.current[item._id] = el)
+                                }
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   toggleMenu(item._id);
                                 }}
                                 onKeyDown={(e) => {
-                                  if (e.key === "Enter" || e.key === " " || e.key === "ArrowDown") {
+                                  if (
+                                    e.key === "Enter" ||
+                                    e.key === " " ||
+                                    e.key === "ArrowDown"
+                                  ) {
                                     e.preventDefault();
                                     openMenu(item._id);
                                   }
@@ -389,11 +419,17 @@ export default function TestSeriesList() {
                               {openMenuId === item._id && (
                                 <div
                                   id={`menu-${item._id}`}
-                                  ref={(el) => (menuRefs.current[item._id] = el)}
+                                  ref={(el) =>
+                                    (menuRefs.current[item._id] = el)
+                                  }
                                   role="menu"
                                   aria-label="Actions"
                                   className="absolute right-0 top-11 z-50 w-56 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden"
-                                  onKeyDown={(e) => onMenuKeyDown(e, actions, item._id)}
+                                  onPointerDown={(e) => e.stopPropagation()}
+                                  onTouchStart={(e) => e.stopPropagation()}
+                                  onKeyDown={(e) =>
+                                    onMenuKeyDown(e, actions, item._id)
+                                  }
                                 >
                                   {actions.map((a, idx) => {
                                     const Icon = a.icon;
@@ -404,7 +440,9 @@ export default function TestSeriesList() {
                                       return (
                                         <button
                                           key={a.key}
-                                          ref={(el) => (itemRefs.current[idx] = el)}
+                                          ref={(el) =>
+                                            (itemRefs.current[idx] = el)
+                                          }
                                           role="menuitem"
                                           tabIndex={idx === 0 ? 0 : -1}
                                           onFocus={() => setActiveIndex(idx)}
@@ -428,7 +466,9 @@ export default function TestSeriesList() {
                                     return (
                                       <Link
                                         key={a.key}
-                                        ref={(el) => (itemRefs.current[idx] = el)}
+                                        ref={(el) =>
+                                          (itemRefs.current[idx] = el)
+                                        }
                                         role="menuitem"
                                         tabIndex={idx === 0 ? 0 : -1}
                                         onFocus={() => setActiveIndex(idx)}
@@ -451,7 +491,9 @@ export default function TestSeriesList() {
                               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                                 Price
                               </p>
-                              <p className="text-sm font-black text-slate-900 mt-1">{formatMoney(item.price)}</p>
+                              <p className="text-sm font-black text-slate-900 mt-1">
+                                {formatMoney(item.price)}
+                              </p>
                             </div>
 
                             <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3">
@@ -500,7 +542,10 @@ export default function TestSeriesList() {
                       {filteredSeries?.map((item) => {
                         const actions = getMenuActions(item);
                         return (
-                          <tr key={item._id} className="group hover:bg-blue-50/30 transition-colors">
+                          <tr
+                            key={item._id}
+                            className="group hover:bg-blue-50/30 transition-colors"
+                          >
                             <td className="px-8 py-5">
                               <div className="flex items-center gap-4">
                                 <div className="h-10 w-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all">
@@ -520,7 +565,8 @@ export default function TestSeriesList() {
                             <td className="px-8 py-5">
                               <div className="font-black text-slate-900">
                                 {formatMoney(item.price)}
-                                {Number(item.originalPrice || 0) > Number(item.price || 0) ? (
+                                {Number(item.originalPrice || 0) >
+                                Number(item.price || 0) ? (
                                   <span className="ml-2 text-xs text-slate-400 line-through font-bold">
                                     {formatMoney(item.originalPrice)}
                                   </span>
@@ -543,13 +589,19 @@ export default function TestSeriesList() {
 
                             <td className="px-8 py-5 text-right relative">
                               <button
-                                ref={(el) => (buttonRefs.current[item._id] = el)}
+                                ref={(el) =>
+                                  (buttonRefs.current[item._id] = el)
+                                }
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   toggleMenu(item._id);
                                 }}
                                 onKeyDown={(e) => {
-                                  if (e.key === "Enter" || e.key === " " || e.key === "ArrowDown") {
+                                  if (
+                                    e.key === "Enter" ||
+                                    e.key === " " ||
+                                    e.key === "ArrowDown"
+                                  ) {
                                     e.preventDefault();
                                     openMenu(item._id);
                                   }
@@ -566,11 +618,15 @@ export default function TestSeriesList() {
                               {openMenuId === item._id && (
                                 <div
                                   id={`menu-${item._id}`}
-                                  ref={(el) => (menuRefs.current[item._id] = el)}
+                                  ref={(el) =>
+                                    (menuRefs.current[item._id] = el)
+                                  }
                                   role="menu"
                                   aria-label="Actions"
                                   className="absolute right-8 top-14 z-50 w-56 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden"
-                                  onKeyDown={(e) => onMenuKeyDown(e, actions, item._id)}
+                                  onKeyDown={(e) =>
+                                    onMenuKeyDown(e, actions, item._id)
+                                  }
                                 >
                                   {actions.map((a, idx) => {
                                     const Icon = a.icon;
@@ -581,7 +637,9 @@ export default function TestSeriesList() {
                                       return (
                                         <button
                                           key={a.key}
-                                          ref={(el) => (itemRefs.current[idx] = el)}
+                                          ref={(el) =>
+                                            (itemRefs.current[idx] = el)
+                                          }
                                           role="menuitem"
                                           tabIndex={idx === 0 ? 0 : -1}
                                           onFocus={() => setActiveIndex(idx)}
@@ -605,7 +663,9 @@ export default function TestSeriesList() {
                                     return (
                                       <Link
                                         key={a.key}
-                                        ref={(el) => (itemRefs.current[idx] = el)}
+                                        ref={(el) =>
+                                          (itemRefs.current[idx] = el)
+                                        }
                                         role="menuitem"
                                         tabIndex={idx === 0 ? 0 : -1}
                                         onFocus={() => setActiveIndex(idx)}
@@ -630,7 +690,9 @@ export default function TestSeriesList() {
 
                 <div className="px-4 sm:px-6 py-4 border-t border-slate-100 bg-slate-50/30 text-[11px] font-black uppercase tracking-widest text-slate-400 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <span>Total Items: {filteredSeries.length}</span>
-                  <span className="text-emerald-600">Product Status: All Live</span>
+                  <span className="text-emerald-600">
+                    Product Status: All Live
+                  </span>
                 </div>
               </>
             )}
@@ -650,10 +712,17 @@ export default function TestSeriesList() {
           >
             <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden">
               <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-                <h3 id="confirm-title" className="text-lg font-black text-slate-900">
+                <h3
+                  id="confirm-title"
+                  className="text-lg font-black text-slate-900"
+                >
                   Confirm Delete
                 </h3>
-                <button onClick={closeConfirm} className="p-2 rounded-xl hover:bg-slate-100 text-slate-500" aria-label="Close">
+                <button
+                  onClick={closeConfirm}
+                  className="p-2 rounded-xl hover:bg-slate-100 text-slate-500"
+                  aria-label="Close"
+                >
                   <X size={18} />
                 </button>
               </div>
@@ -661,7 +730,10 @@ export default function TestSeriesList() {
               <div className="px-5 py-5">
                 <p className="text-sm text-slate-600">
                   Are you sure you want to delete{" "}
-                  <span className="font-black text-slate-900">{deleteTarget?.title}</span>? This action cannot be undone.
+                  <span className="font-black text-slate-900">
+                    {deleteTarget?.title}
+                  </span>
+                  ? This action cannot be undone.
                 </p>
 
                 {!canDelete && (

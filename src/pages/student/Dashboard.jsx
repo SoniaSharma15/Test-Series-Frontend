@@ -63,7 +63,7 @@ export default function Dashboard() {
               <div>
                 <div className="flex items-center gap-2 mb-1">
                    <div className="h-1.5 w-1.5 rounded-full bg-blue-600 animate-pulse" />
-                   <span className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-600">Secure Student Terminal</span>
+                   <span className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-600">Student Dashboard</span>
                 </div>
                 <h1 className="text-3xl font-black text-slate-900 tracking-tight">
                   Welcome, {user?.name?.split(" ")[0]} <Sparkles size={24} className="inline text-blue-500 fill-blue-500/10" />
@@ -90,7 +90,7 @@ export default function Dashboard() {
           {/* BATCH SECTION */}
           <div className="space-y-6">
             <div className="flex items-center gap-4 px-2">
-               <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Enrolled Curriculum</h3>
+               <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Enrolled Batch</h3>
                <div className="h-px flex-1 bg-slate-200" />
             </div>
 
@@ -166,7 +166,7 @@ function BladeCard({ series, navigate }) {
         <div className="flex items-center gap-2 mb-2">
           <ShieldCheck size={16} className="text-blue-600" />
           <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">
-            Authenticated Asset
+            Your Test Series
           </span>
         </div>
 

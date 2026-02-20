@@ -82,7 +82,7 @@ export default function RecentPerformance() {
             <div className="flex items-center gap-4">
               <div className="h-12 w-2 bg-blue-600 rounded-full" />
               <h1 className="text-4xl font-black text-slate-900 tracking-tight">
-                Recent <span className="text-blue-600">Metrics</span>
+                Recent <span className="text-blue-600">Performance</span>
               </h1>
             </div>
           </header>

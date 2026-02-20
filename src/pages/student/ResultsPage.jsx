@@ -10,6 +10,7 @@ import {
   Search
 } from "lucide-react";
 import StudentSidebar from "../../components/student/StudentSidebar";
+import Loader from "../../components/common/Loader";
 
 export default function ResultsPage() {
   const [attempts, setAttempts] = useState([]);
@@ -33,9 +34,7 @@ export default function ResultsPage() {
   };
 
   if (loading) return (
-    <div className="flex h-screen items-center justify-center bg-[#F8FAFC]">
-      <div className="animate-spin h-6 w-6 border-2 border-blue-600 border-t-transparent rounded-full" />
-    </div>
+  <Loader/>
   );
 
   return (

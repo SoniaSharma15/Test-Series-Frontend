@@ -8,9 +8,7 @@ import {
   ShieldCheck,
   Zap,
   BarChart3,
-  Calendar,
-  Globe
-} from "lucide-react";
+  } from "lucide-react";
 
 import {
   Chart as ChartJS,
@@ -21,6 +19,7 @@ import {
   Legend,
 } from "chart.js";
 import { Bar } from "react-chartjs-2";
+import Loader from "../../components/common/Loader";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
@@ -45,9 +44,7 @@ export default function Performance() {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#F8FAFC]">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
-      </div>
+    <Loader/>
     );
   }
 

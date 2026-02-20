@@ -15,6 +15,7 @@ import {
   Sparkles,
   BookOpen,
 } from "lucide-react";
+import Loader from "../../components/common/Loader";
 
 export default function CreateTestSeries() {
   const { id } = useParams();
@@ -169,12 +170,7 @@ const handleSubmit = async (e) => {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-slate-50">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
-          <p className="text-sm font-bold text-slate-500 tracking-widest uppercase">Initializing Node...</p>
-        </div>
-      </div>
+      <Loader/>
     );
   }
 

@@ -20,6 +20,7 @@ import {
   Star,
   Award
 } from "lucide-react";
+import Loader from "../../components/common/Loader";
 
 export default function TestSeriesDetails() {
   const { id } = useParams();
@@ -52,12 +53,7 @@ export default function TestSeriesDetails() {
   };
 
   if (loading) return (
-    <div className="flex h-screen items-center justify-center bg-[#F8FAFC]">
-      <div className="relative flex items-center justify-center">
-        <div className="h-16 w-16 animate-spin rounded-full border-4 border-blue-600/20 border-t-blue-600" />
-        <Zap className="absolute text-blue-600 animate-pulse" size={20} />
-      </div>
-    </div>
+   <Loader/>
   );
 
   return (

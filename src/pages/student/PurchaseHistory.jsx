@@ -11,6 +11,7 @@ import {
   Receipt
 } from "lucide-react";
 import StudentSidebar from "../../components/student/StudentSidebar";
+import Loader from "../../components/common/Loader";
 
 export default function PurchaseHistory() {
   const [data, setData] = useState([]);
@@ -32,7 +33,9 @@ export default function PurchaseHistory() {
       setLoading(false);
     }
   };
-
+if(loading){
+  return <Loader></Loader>
+}
   const getStatusConfig = (status) => {
     switch (status?.toLowerCase()) {
       case "success":

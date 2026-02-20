@@ -1,17 +1,18 @@
 import { useEffect, useState } from "react";
 import axios from "../../services/axiosInstance";
-import { 
-  CreditCard, 
-  Download, 
-  Clock, 
-  CheckCircle2, 
-  XCircle, 
+import {
+  CreditCard,
+  Download,
+  Clock,
+  CheckCircle2,
+  XCircle,
   AlertCircle,
   History,
   Receipt
 } from "lucide-react";
 import StudentSidebar from "../../components/student/StudentSidebar";
 import Loader from "../../components/common/Loader";
+import toast from "react-hot-toast";
 
 export default function PurchaseHistory() {
   const [data, setData] = useState([]);
@@ -33,47 +34,69 @@ export default function PurchaseHistory() {
       setLoading(false);
     }
   };
-if(loading){
-  return <Loader></Loader>
-}
+  if (loading) {
+    return <Loader></Loader>
+  }
   const getStatusConfig = (status) => {
     switch (status?.toLowerCase()) {
       case "success":
-        return { 
-          style: "bg-emerald-50 text-emerald-600 border-emerald-100", 
+        return {
+          style: "bg-emerald-50 text-emerald-600 border-emerald-100",
           icon: <CheckCircle2 size={12} />,
           label: "SUCCESS"
         };
       case "failed":
-        return { 
-          style: "bg-red-50 text-red-600 border-red-100", 
+        return {
+          style: "bg-red-50 text-red-600 border-red-100",
           icon: <XCircle size={12} />,
           label: "FAILED"
         };
       case "pending":
-        return { 
-          style: "bg-amber-50 text-amber-600 border-amber-100", 
+        return {
+          style: "bg-amber-50 text-amber-600 border-amber-100",
           icon: <Clock size={12} />,
           label: "PROCESSING"
         };
       default:
-        return { 
-          style: "bg-slate-50 text-slate-600 border-slate-100", 
+        return {
+          style: "bg-slate-50 text-slate-600 border-slate-100",
           icon: <AlertCircle size={12} />,
-          label: status?.toUpperCase() 
+          label: status?.toUpperCase()
         };
     }
   };
 
   const handleDownload = async (paymentId) => {
     try {
-      const response = await axios.get(`/payment/receipt/${paymentId}`, { responseType: "blob" });
-      const url = window.URL.createObjectURL(new Blob([response.data], { type: "application/pdf" }));
+      const response = await axios.get(
+        `/payment/receipt/${paymentId}`,
+        { responseType: "blob" }
+      );
+
+      const url = window.URL.createObjectURL(
+        new Blob([response.data], { type: "application/pdf" })
+      );
+
       const link = document.createElement("a");
       link.href = url;
       link.download = `receipt-${paymentId}.pdf`;
       link.click();
+
+      toast.success("Receipt downloaded successfully ✅");
+
     } catch (error) {
+
+      if (error.response?.status === 410) {
+        toast.error("This test series is no longer available.");
+        return;
+      }
+
+      if (error.response?.status === 404) {
+        toast.error("Receipt not found.");
+        return;
+      }
+
+      toast.error("Failed to download receipt.");
       console.error("Download failed:", error);
     }
   };
@@ -84,7 +107,7 @@ if(loading){
 
       <main className="flex-1 min-w-0 h-screen overflow-y-auto custom-scrollbar font-sans">
         <div className="max-w-[1200px] mx-auto p-6 md:p-10 space-y-8 animate-in fade-in duration-700">
-          
+
           {/* HEADER CONSOLE */}
           <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-200 pb-8">
             <div>
@@ -96,13 +119,13 @@ if(loading){
                 Purchase <span className="text-blue-600">History</span>
               </h1>
             </div>
-            
+
             <div className="hidden md:flex items-center gap-3 bg-white px-5 py-3 rounded-2xl border border-slate-200 shadow-sm">
-               <Receipt className="text-blue-600" size={20} />
-               <div className="text-right leading-none">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total Logs</p>
-                  <p className="text-sm font-black text-slate-900 italic mt-1">{data.length} Records</p>
-               </div>
+              <Receipt className="text-blue-600" size={20} />
+              <div className="text-right leading-none">
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total Logs</p>
+                <p className="text-sm font-black text-slate-900 italic mt-1">{data.length} Records</p>
+              </div>
             </div>
           </header>
 
@@ -124,7 +147,7 @@ if(loading){
             ) : data.length === 0 ? (
               <div className="p-20 text-center flex flex-col items-center">
                 <div className="h-16 w-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-200 mb-4 border border-slate-100">
-                   <CreditCard size={32} />
+                  <CreditCard size={32} />
                 </div>
                 <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest italic">No Transaction Nodes Detected</h3>
               </div>
@@ -171,19 +194,25 @@ if(loading){
 
                           <td className="px-8 py-5">
                             <div className="flex flex-col leading-none">
-                               <span className="text-[11px] font-black text-slate-500 uppercase">{new Date(item.date).toLocaleDateString()}</span>
-                               <span className="text-[9px] font-bold text-slate-300 mt-1 uppercase tracking-tighter">Authorized</span>
+                              <span className="text-[11px] font-black text-slate-500 uppercase">{new Date(item.date).toLocaleDateString()}</span>
+                              <span className="text-[9px] font-bold text-slate-300 mt-1 uppercase tracking-tighter">Authorized</span>
                             </div>
                           </td>
 
                           <td className="px-8 py-5 text-right">
-                            <button
-                              onClick={() => handleDownload(item.paymentId)}
-                              className="p-3 bg-slate-50 text-slate-400 hover:text-white hover:bg-blue-600 rounded-xl transition-all shadow-sm border border-slate-100 group-hover:scale-110 active:scale-95"
-                              title="Download Receipt"
-                            >
-                              <Download size={16} />
-                            </button>
+                            {item.courseName ? (
+                              <button
+                                onClick={() => handleDownload(item.paymentId)}
+                                className="p-3 bg-slate-50 text-slate-400 hover:text-white hover:bg-blue-600 rounded-xl transition-all shadow-sm border border-slate-100 group-hover:scale-110 active:scale-95"
+                                title="Download Receipt"
+                              >
+                                <Download size={16} />
+                              </button>
+                            ) : (
+                              <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">
+                                Unavailable
+                              </span>
+                            )}
                           </td>
                         </tr>
                       );
@@ -196,13 +225,13 @@ if(loading){
 
           {/* SYSTEM FOOTER */}
           <footer className="flex items-center justify-between px-2 pt-2 opacity-50">
-             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">
-                Secure SSL Encrypted Ledger
-             </p>
-             <div className="flex gap-2">
-                <div className="h-1 w-1 rounded-full bg-blue-600" />
-                <div className="h-1 w-1 rounded-full bg-blue-300" />
-             </div>
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">
+              Secure SSL Encrypted Ledger
+            </p>
+            <div className="flex gap-2">
+              <div className="h-1 w-1 rounded-full bg-blue-600" />
+              <div className="h-1 w-1 rounded-full bg-blue-300" />
+            </div>
           </footer>
 
         </div>

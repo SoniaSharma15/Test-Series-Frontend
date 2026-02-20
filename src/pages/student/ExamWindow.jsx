@@ -64,14 +64,12 @@ export default function ExamWindow() {
     const triggerViolation = (message) => {
       setViolations((prev) => {
         const newCount = prev + 1;
-
         if (newCount >= 3) {
           alert("Multiple violations detected. Exam will be submitted.");
           handleSubmit(true);
         } else {
           setShowWarning(true);
         }
-
         return newCount;
       });
     };
@@ -134,12 +132,8 @@ export default function ExamWindow() {
   /* ================= TIMER ================= */
   const startTimer = () => {
     clearInterval(timerRef.current);
-
     timerRef.current = setInterval(() => {
-      const remaining = Math.floor(
-        (examEndRef.current - Date.now()) / 1000
-      );
-
+      const remaining = Math.floor((examEndRef.current - Date.now()) / 1000);
       if (remaining <= 0) {
         clearInterval(timerRef.current);
         setTimeLeft(0);
@@ -189,79 +183,41 @@ export default function ExamWindow() {
 
   /* ================= ANSWER SELECT ================= */
   const selectOption = (optionText, isMSQ) => {
-  const qId = questions[current]?._id;
-  if (!qId) return;
-  
-  markQuestionAsVisited(current);
+    const qId = questions[current]?._id;
+    if (!qId) return;
+    markQuestionAsVisited(current);
+    if (optionText === undefined || optionText === null) return;
 
-  if (optionText === undefined || optionText === null) return;
-
-  setAnswers((prev) => {
-    const answerIndex = prev.findIndex(
-      (a) => a.questionId === qId
-    );
-
-    if (isMSQ) {
-      if (answerIndex === -1) {
-        return [
-          ...prev,
-          { questionId: qId, selectedAnswers: [optionText] },
-        ];
-      }
-
-      const currentAnswer = prev[answerIndex];
-      const selected = currentAnswer.selectedAnswers || [];
-
-      if (selected.includes(optionText)) {
-        const updated = selected.filter(
-          (x) => x !== optionText
-        );
-
-        if (updated.length === 0) {
-          return prev.filter(
-            (a) => a.questionId !== qId
-          );
+    setAnswers((prev) => {
+      const answerIndex = prev.findIndex((a) => a.questionId === qId);
+      if (isMSQ) {
+        if (answerIndex === -1) {
+          return [...prev, { questionId: qId, selectedAnswers: [optionText] }];
         }
-
-        return [
-          ...prev.slice(0, answerIndex),
-          { questionId: qId, selectedAnswers: updated },
-          ...prev.slice(answerIndex + 1),
-        ];
-      } else {
-        return [
-          ...prev.slice(0, answerIndex),
-          {
-            questionId: qId,
-            selectedAnswers: [...selected, optionText],
-          },
-          ...prev.slice(answerIndex + 1),
-        ];
+        const currentAnswer = prev[answerIndex];
+        const selected = currentAnswer.selectedAnswers || [];
+        if (selected.includes(optionText)) {
+          const updated = selected.filter((x) => x !== optionText);
+          if (updated.length === 0) return prev.filter((a) => a.questionId !== qId);
+          return [...prev.slice(0, answerIndex), { questionId: qId, selectedAnswers: updated }, ...prev.slice(answerIndex + 1)];
+        } else {
+          return [...prev.slice(0, answerIndex), { questionId: qId, selectedAnswers: [...selected, optionText] }, ...prev.slice(answerIndex + 1)];
+        }
       }
-    }
-
-    return [
-      ...prev.filter((a) => a.questionId !== qId),
-      { questionId: qId, selectedAnswer: optionText },
-    ];
-  });
-};
+      return [...prev.filter((a) => a.questionId !== qId), { questionId: qId, selectedAnswer: optionText }];
+    });
+  };
 
   /* ================= SUBMIT ================= */
   const handleSubmit = async (auto = false) => {
     if (submitted || submittingRef.current) return;
-
     if (!auto && !window.confirm("Are you sure you want to submit?")) return;
-
     submittingRef.current = true;
     setSubmitted(true);
-
     try {
       await axios.post("/attempts/submit", { attemptId, answers });
       navigate("/student/dashboard");
-      if (document.fullscreenElement) {
-        await document.exitFullscreen();
-      }
+      if (document.fullscreenElement) await document.exitFullscreen();
     } catch (err) {
       console.error("Submit Error:", err);
       setSubmitted(false);
@@ -270,14 +226,12 @@ export default function ExamWindow() {
     }
   };
 
-  /* ================= TIME FORMAT ================= */
   const formatTime = () => {
     const safeTime = Math.max(0, timeLeft || 0);
     const minutes = Math.floor(safeTime / 60);
     const seconds = safeTime % 60;
     return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
   };
-
 
   if (loading) {
     return (
@@ -302,29 +256,23 @@ export default function ExamWindow() {
   }
 
   const currentQuestion = questions[current];
-  const existingAnswer = answers.find(a => a.questionId === currentQuestion?._id);
+
+  // ✅ ACTIVE PASSAGE GROUP LOGIC
+  const currentGroupId = currentQuestion?.passageGroupId;
+  const activePassage = questions.find(
+    (q) =>
+      q.passageGroupId === currentGroupId &&
+      (q.passage?.english || q.passage?.hindi)
+  )?.passage;
+
+  const hasPassage = !!activePassage?.english || !!activePassage?.hindi;
+  const hasImage = !!currentQuestion?.questionImage?.url;
+  const showSplitView = hasPassage || hasImage;
+
+  /* ================= ANSWER STATE ================= */
+  const existingAnswer = answers.find((a) => a.questionId === currentQuestion?._id);
   const selectedAnswer = existingAnswer?.selectedAnswer || null;
   const selectedAnswers = Array.isArray(existingAnswer?.selectedAnswers) ? existingAnswer.selectedAnswers : [];
-  
-  const isPassageQuestion = currentQuestion?.type === "PASSAGE";
-  const hasImage = !!currentQuestion?.questionImage?.url;
-  
-  // LOGIC: Show split view if it's a passage OR if the question has an image
-  const showSplitView = isPassageQuestion || hasImage;
-
-  const getPassageData = () => {
-    if (!isPassageQuestion || !currentQuestion?.questionText) return { passage: null, question: null };
-    const fullText = language === "hindi" ? currentQuestion.questionText?.hindi : currentQuestion.questionText?.english;
-    if (!fullText) return { passage: null, question: null };
-    const separator = language === "hindi" ? "प्रश्न:" : "Question:";
-    const parts = fullText.split(separator);
-    return {
-      passage: parts[0]?.replace(/Passage:|गद्यांश:/g, "").trim(),
-      question: parts[1]?.trim(),
-    };
-  };
-
-  const { passage: extractedPassage, question: extractedQuestion } = getPassageData();
 
   return (
     <div className="fixed inset-0 w-screen h-screen flex flex-col bg-[#FDFEFF] select-none z-[9999] font-sans">
@@ -339,7 +287,7 @@ export default function ExamWindow() {
             {isSidebarOpen ? '✕' : '☰'}
           </button>
           <div className="hidden md:block h-6 w-1 bg-blue-600 rounded-full"></div>
-          <h1 className="font-black text-slate-800 text-sm md:text-lg truncate max-w-[150px] md:max-w-md">{test.name}</h1>
+          <h1 className="font-black text-slate-800 text-sm md:text-lg truncate max-w-[150px] md:max-w-md">{test?.name}</h1>
         </div>
 
         <div className="flex items-center gap-3 md:gap-10">
@@ -366,23 +314,25 @@ export default function ExamWindow() {
 
       <div className="flex flex-1 overflow-hidden relative">
 
-        {/* LEFT PANEL: Restored for Passage AND Images */}
+        {/* LEFT PANEL */}
         {showSplitView && (
           <div className="w-full md:w-[45%] h-full bg-white border-r border-slate-100 flex flex-col absolute md:relative z-40 transition-transform duration-300">
             <div className="px-6 py-4 bg-slate-50/50 flex items-center justify-between border-b border-slate-100">
               <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">
-                {isPassageQuestion ? 'Passage Reference' : 'Visual Reference'}
+                {hasPassage ? 'Passage Reference' : 'Visual Reference'}
               </span>
             </div>
             <div className="flex-1 p-6 md:p-8 overflow-y-auto custom-scrollbar flex items-center justify-center">
-              {isPassageQuestion ? (
+              {hasPassage ? (
                 <div className="text-[15px] md:text-[17px] text-slate-600 leading-[1.8] font-medium bg-blue-50/30 p-6 md:p-10 rounded-[2rem] border border-blue-100/50 italic w-full">
-                  {extractedPassage || "No passage available"}
+                  {language === "hindi"
+                    ? activePassage?.hindi
+                    : activePassage?.english}
                 </div>
               ) : (
                 <div className="w-full h-full flex items-center justify-center p-4">
                     <img 
-                        src={currentQuestion.questionImage.url} 
+                        src={currentQuestion?.questionImage?.url} 
                         alt="Question Figure" 
                         className="max-w-full max-h-full object-contain rounded-2xl shadow-xl border border-slate-100 p-2 bg-white"
                     />
@@ -398,21 +348,10 @@ export default function ExamWindow() {
             <QuestionPanel
               current={current}
               totalQuestions={questions.length}
-              currentQuestion={
-                isPassageQuestion
-                  ? {
-                      ...currentQuestion,
-                      questionText: {
-                        english: language === "english" ? extractedQuestion : currentQuestion.questionText?.english,
-                        hindi: language === "hindi" ? extractedQuestion : currentQuestion.questionText?.hindi,
-                      },
-                    }
-                  : {
-                      ...currentQuestion,
-                      // Hide the image inside QuestionPanel if we are showing it in the split window
-                      questionImage: showSplitView ? null : currentQuestion.questionImage
-                    }
-              }
+              currentQuestion={{
+                ...currentQuestion,
+                questionImage: showSplitView ? null : currentQuestion?.questionImage,
+              }}
               language={language}
               selectedAnswer={selectedAnswer}
               selectedAnswers={selectedAnswers}
@@ -511,6 +450,7 @@ export default function ExamWindow() {
         </div>
       </div>
 
+      {/* WARNING MODAL */}
       {showWarning && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-[10000] p-6">
           <div className="bg-white p-10 rounded-[3rem] shadow-2xl text-center max-w-sm w-full border border-white/20">
@@ -536,7 +476,6 @@ export default function ExamWindow() {
           </div>
         </div>
       )}
-
     </div>
   );
 }

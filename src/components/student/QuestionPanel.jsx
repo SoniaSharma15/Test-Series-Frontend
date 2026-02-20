@@ -67,37 +67,45 @@ export default function QuestionPanel({
 
   return (
     <div className="flex-1 min-w-0 flex flex-col bg-white border-l border-r border-slate-200 font-sans">
-      {/* Updated Top Strip: Removed "Reading Comp." text */}
+      
+      {/* HEADER STRIP */}
       {!hideHeader && (
         <div className="h-12 bg-blue-600 text-white flex items-center justify-between px-6 shadow-sm z-10">
           <div className="text-[13px] font-black tracking-widest uppercase flex items-center gap-2">
-            <span className="bg-white/20 px-2 py-0.5 rounded">QUESTION {current + 1}</span>
+            <span className="bg-white/20 px-2 py-0.5 rounded">
+              QUESTION {current + 1}
+            </span>
           </div>
 
           <div className="flex items-center gap-3">
             <div className="flex items-center bg-white/10 rounded-lg px-3 py-1 border border-white/10">
-               <span className="text-[10px] font-black mr-2 opacity-70 uppercase">Marks:</span>
-               <span className="text-[12px] font-black">+{marks}</span>
-               {neg > 0 && (
-                 <>
-                   <span className="mx-2 opacity-30">|</span>
-                   <span className="text-red-200 text-[12px] font-black">-{neg}</span>
-                 </>
-               )}
+              <span className="text-[10px] font-black mr-2 opacity-70 uppercase">
+                Marks:
+              </span>
+              <span className="text-[12px] font-black">+{marks}</span>
+              {neg > 0 && (
+                <>
+                  <span className="mx-2 opacity-30">|</span>
+                  <span className="text-red-200 text-[12px] font-black">
+                    -{neg}
+                  </span>
+                </>
+              )}
             </div>
           </div>
         </div>
       )}
 
-      {/* Content Area */}
+      {/* CONTENT AREA */}
       <div className="flex-1 overflow-y-auto custom-scrollbar">
         <div className="p-8 max-w-4xl mx-auto">
-          {/* Question Text */}
-          <h2 className="text-[20px] leading-relaxed font-bold text-slate-800">
+
+          {/* ✅ FIXED: Assertion line break support added */}
+          <h2 className="text-[20px] leading-relaxed font-bold text-slate-800 whitespace-pre-line">
             {getText(currentQuestion?.questionText) || "Question not available"}
           </h2>
 
-          {/* Question Image */}
+          {/* QUESTION IMAGE */}
           {currentQuestion?.questionImage?.url ? (
             <div className="mt-8 flex justify-start">
               <div className="p-2 bg-slate-50 border border-slate-200 rounded-2xl shadow-sm">
@@ -111,7 +119,7 @@ export default function QuestionPanel({
             </div>
           ) : null}
 
-          {/* Options Grid */}
+          {/* OPTIONS */}
           <div className="mt-10 space-y-4">
             {options.length > 0 ? (
               options.map((opt, i) => {
@@ -130,18 +138,29 @@ export default function QuestionPanel({
                         : "border-slate-100 hover:border-blue-300 hover:bg-slate-50",
                     ].join(" ")}
                   >
-                    {/* Visual Checkbox/Radio */}
                     <div className="shrink-0">
                       {isMSQ ? (
                         <div
                           className={[
                             "h-6 w-6 rounded-md border-2 flex items-center justify-center transition-colors",
-                            selected ? "border-blue-600 bg-blue-600" : "border-slate-300 bg-white",
+                            selected
+                              ? "border-blue-600 bg-blue-600"
+                              : "border-slate-300 bg-white",
                           ].join(" ")}
                         >
                           {selected && (
-                            <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            <svg
+                              className="h-4 w-4 text-white"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth={4}
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M5 13l4 4L19 7"
+                              />
                             </svg>
                           )}
                         </div>
@@ -149,29 +168,37 @@ export default function QuestionPanel({
                         <div
                           className={[
                             "h-6 w-6 rounded-full border-2 flex items-center justify-center transition-colors",
-                            selected ? "border-blue-600" : "border-slate-300",
+                            selected
+                              ? "border-blue-600"
+                              : "border-slate-300",
                           ].join(" ")}
                         >
-                          {selected && <div className="h-3 w-3 bg-blue-600 rounded-full" />}
+                          {selected && (
+                            <div className="h-3 w-3 bg-blue-600 rounded-full" />
+                          )}
                         </div>
                       )}
                     </div>
 
                     <div className="flex-1 text-[16px] font-semibold text-slate-700 leading-relaxed">
-                      <span className="inline-block w-6 text-slate-400 font-black">{String.fromCharCode(65 + i)}.</span>
+                      <span className="inline-block w-6 text-slate-400 font-black">
+                        {String.fromCharCode(65 + i)}.
+                      </span>
                       {label}
                     </div>
                   </button>
                 );
               })
             ) : (
-              <div className="text-slate-400 italic">No options available for this question.</div>
+              <div className="text-slate-400 italic">
+                No options available for this question.
+              </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Bottom Action Bar */}
+      {/* FOOTER ACTION BAR */}
       <div className="h-20 border-t border-slate-200 bg-white px-8 flex items-center justify-between shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.02)]">
         <div className="flex items-center gap-4">
           <button
@@ -184,12 +211,12 @@ export default function QuestionPanel({
           <button
             onClick={() => onToggleReview && onToggleReview()}
             className={`h-11 px-6 rounded-xl border-2 font-black text-xs uppercase tracking-widest transition-all ${
-              isReviewed 
-                ? 'bg-purple-600 text-white border-purple-600 shadow-lg shadow-purple-100' 
-                : 'bg-white text-slate-600 border-slate-200 hover:border-purple-300'
+              isReviewed
+                ? "bg-purple-600 text-white border-purple-600 shadow-lg shadow-purple-100"
+                : "bg-white text-slate-600 border-slate-200 hover:border-purple-300"
             }`}
           >
-            {isReviewed ? 'Bookmarked' : 'Review'}
+            {isReviewed ? "Bookmarked" : "Review"}
           </button>
         </div>
 

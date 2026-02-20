@@ -182,20 +182,33 @@ export default function ManageQuestions() {
             const aHi = String(s.assertionTextHi || "").trim();
             const rHi = String(s.reasonTextHi || "").trim();
 
-            payload = {
-              testId,
-              type: "ASSERTION_REASON",
-              marks,
-              negativeMarks,
-              lang: metaLang,
-              questionText: {
-                english: `PASSAGE:\n${passageEn || passageHi}\n\nASSERTION: ${aEn || ""}\nREASON: ${rEn || ""}`,
-                hindi: `PASSAGE:\n${passageHi || passageEn}\n\nASSERTION: ${aHi || ""}\nREASON: ${rHi || ""}`,
-              },
-              options: AR_OPTIONS.slice(0, 4).map((t) => ({ english: t, hindi: t })),
-              correctAnswer: correct, // backend string (AR options)
-              allowImage: false,
-            };
+payload = {
+  testId,
+  type: isMSQ ? "MSQ" : s.type === "MATH" ? "MATH" : "MCQ",
+  marks,
+  negativeMarks,
+  lang: metaLang,
+
+  // ✅ PROPER PASSAGE FIELD
+  passage: {
+    english: passageEn || "",
+    hindi: passageHi || "",
+  },
+
+  // ✅ ONLY QUESTION TEXT HERE
+  questionText: {
+    english: qEn || "",
+    hindi: qHi || "",
+  },
+
+  options,
+  ...(isMSQ
+    ? { correctAnswers: finalCorrects }
+    : { correctAnswer }),
+
+  allowImage: false,
+};
+
           } else {
             // ======= MCQ / MATH / MSQ =======
             const options = toOptObjs4(s.options, s.optionsHi);

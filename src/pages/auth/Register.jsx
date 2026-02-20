@@ -79,7 +79,7 @@ export default function Register() {
       const role = res.data?.user?.role;
       navigate(role ? `/${role}/dashboard` : "/");
     } catch (err) {
-      setServerError(err.response?.data?.message || "Node Registration Failed");
+      setServerError(err.response?.data?.message || "Registration Failed");
     } finally {
       setLoading(false);
     }

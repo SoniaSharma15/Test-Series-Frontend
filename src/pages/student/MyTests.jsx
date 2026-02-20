@@ -10,6 +10,7 @@ import {
   Info
 } from "lucide-react";
 import StudentSidebar from "../../components/student/StudentSidebar";
+import Loader from "../../components/common/Loader";
 
 export default function MyTests() {
   const [data, setData] = useState([]);
@@ -32,6 +33,10 @@ export default function MyTests() {
     }
   };
 
+  if(loading){
+    return <Loader/>
+  }
+
   return (
     <div className="flex min-h-screen bg-[#F8FAFC]">
       <StudentSidebar />
@@ -49,6 +54,7 @@ export default function MyTests() {
               My Learning <span className="text-blue-600">Library</span>
             </h1>
           </div>
+          
 
           {/* Error Message */}
           {error && (

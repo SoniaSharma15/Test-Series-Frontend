@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "../../services/axiosInstance";
 import StudentSidebar from "../../components/student/StudentSidebar";
 import { AuthContext } from "../../context/AuthContext";
+import toast from "react-hot-toast";
 import {
   ArrowLeft,
   Clock,
@@ -22,6 +23,7 @@ import {
 } from "lucide-react";
 
 export default function TestSeriesDetails() {
+  
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
@@ -39,16 +41,68 @@ export default function TestSeriesDetails() {
       const res = await axios.get(`/test-series/${id}`);
       setSeries(res.data);
     } catch (err) {
-      console.error("Failed to load details");
+      console.error(err);
+      toast.error("Failed to load test series details");
     } finally {
       setLoading(false);
     }
   };
-
   const handleEnroll = async () => {
-    if (!user) { navigate("/login"); return; }
-    if (series.isEnrolled) { navigate("/student/my-tests"); return; }
-    // ... (Your existing Razorpay logic remains the same)
+    if (!user) {
+      toast("Please login to continue", { icon: "🔐" });
+      navigate("/login");
+      return;
+    }
+
+    if (series.isEnrolled) {
+      toast.success("You are already enrolled");
+      navigate("/student/my-tests");
+      return;
+    }
+
+    try {
+      setProcessing(true);
+
+      const orderRes = await axios.post("/payment/create-order", {
+        testSeriesId: series._id,
+      });
+
+      const options = {
+        key: orderRes.data.key,
+        amount: orderRes.data.amount,
+        order_id: orderRes.data.orderId,
+        name: "Brilliant Bihar Test Series",
+        description: "Payment for Test Series",
+
+        handler: async function (response) {
+          try {
+            await axios.post("/payment/verify", {
+              ...response,
+              testSeriesId: series._id,
+            });
+
+            toast.success("Payment successful 🎉");
+            navigate("/student/my-tests");
+          } catch (err) {
+            toast.error("Payment verification failed");
+          }
+        },
+
+        modal: {
+          ondismiss: function () {
+            toast("Payment cancelled", { icon: "⚠️" });
+          },
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (error) {
+      console.error(error);
+      toast.error("Enrollment failed. Please try again.");
+    } finally {
+      setProcessing(false);
+    }
   };
 
   if (loading) return (
@@ -61,6 +115,7 @@ export default function TestSeriesDetails() {
   );
 
   return (
+    
     <div className="flex min-h-screen bg-[#F8FAFC]">
       {user && <StudentSidebar />}
 
@@ -221,11 +276,15 @@ export default function TestSeriesDetails() {
                   onClick={handleEnroll}
                   disabled={processing || series.isEnrolled}
                   className={`w-full py-5 rounded-[1.5rem] font-black text-[11px] uppercase tracking-[0.2em] shadow-xl transition-all active:scale-95
-                    ${series.isEnrolled
+    ${series.isEnrolled
                       ? "bg-emerald-500 text-white cursor-default"
                       : "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-200"}`}
                 >
-                  {processing ? "Processing..." : series.isEnrolled ? "Already Enrolled" : "Get Instant Access"}
+                  {processing
+                    ? "Processing..."
+                    : series.isEnrolled
+                      ? "Already Enrolled"
+                      : "Get Instant Access"}
                 </button>
 
                 <p className="text-center text-[9px] font-bold text-slate-400 mt-6">
@@ -234,38 +293,38 @@ export default function TestSeriesDetails() {
               </div>
 
               {/* STATIC DATA: TRUST BADGE */}
-{/* --- SECTION: WHY THIS SERIES? (Feature Comparison) --- */}
-<div className="bg-slate-900 rounded-[3rem] p-8 md:p-10 text-white shadow-2xl overflow-hidden relative">
-  <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-blue-600/20 rounded-full blur-[80px]" />
-  
-  <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-400 mb-8">What makes us better?</h3>
-  
-  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-    <div className="space-y-3">
-      <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
-        <AlertCircle size={20} className="text-blue-400" />
-      </div>
-      <h5 className="text-sm font-black italic tracking-tight">Updated Content</h5>
-      <p className="text-[11px] text-slate-400 leading-relaxed font-medium">Updated as per Feb 2026 exam changes and latest Bihar budget data.</p>
-    </div>
+              {/* --- SECTION: WHY THIS SERIES? (Feature Comparison) --- */}
+              <div className="bg-slate-900 rounded-[3rem] p-8 md:p-10 text-white shadow-2xl overflow-hidden relative">
+                <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-blue-600/20 rounded-full blur-[80px]" />
 
-    <div className="space-y-3">
-      <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
-        <Award size={20} className="text-emerald-400" />
-      </div>
-      <h5 className="text-sm font-black italic tracking-tight">Expert Solutions</h5>
-      <p className="text-[11px] text-slate-400 leading-relaxed font-medium">Video hints for tough Maths & Reasoning questions included.</p>
-    </div>
+                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-400 mb-8">What makes us better?</h3>
 
-    <div className="space-y-3">
-      <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
-        <Zap size={20} className="text-amber-400" />
-      </div>
-      <h5 className="text-sm font-black italic tracking-tight">Offline Access</h5>
-      <p className="text-[11px] text-slate-400 leading-relaxed font-medium">Downloadable PDF for revision even without internet.</p>
-    </div>
-  </div>
-</div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  <div className="space-y-3">
+                    <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
+                      <AlertCircle size={20} className="text-blue-400" />
+                    </div>
+                    <h5 className="text-sm font-black italic tracking-tight">Updated Content</h5>
+                    <p className="text-[11px] text-slate-400 leading-relaxed font-medium">Updated as per Feb 2026 exam changes and latest Bihar budget data.</p>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
+                      <Award size={20} className="text-emerald-400" />
+                    </div>
+                    <h5 className="text-sm font-black italic tracking-tight">Expert Solutions</h5>
+                    <p className="text-[11px] text-slate-400 leading-relaxed font-medium">Video hints for tough Maths & Reasoning questions included.</p>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
+                      <Zap size={20} className="text-amber-400" />
+                    </div>
+                    <h5 className="text-sm font-black italic tracking-tight">Offline Access</h5>
+                    <p className="text-[11px] text-slate-400 leading-relaxed font-medium">Downloadable PDF for revision even without internet.</p>
+                  </div>
+                </div>
+              </div>
             </aside>
           </div>
         </div>
@@ -278,9 +337,18 @@ export default function TestSeriesDetails() {
           </div>
           <button
             onClick={handleEnroll}
-            className="bg-blue-600 text-white px-8 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest"
+            disabled={processing || series.isEnrolled}
+            className={`px-8 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all
+    ${series.isEnrolled
+                ? "bg-emerald-500 text-white cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700 text-white"}
+  `}
           >
-            Enroll Now
+            {processing
+              ? "Processing..."
+              : series.isEnrolled
+                ? "Already Enrolled"
+                : "Enroll Now"}
           </button>
         </div>
       </main>

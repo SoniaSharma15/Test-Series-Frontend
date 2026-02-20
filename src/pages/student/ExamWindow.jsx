@@ -11,6 +11,8 @@ import {
 } from "react-router-dom";
 
 import axios from "../../services/axiosInstance";
+import toast from "react-hot-toast";
+
 import QuestionPanel from "../../components/student/exam/QuestionPanel";
 import Palette from "../../components/student/exam/Palette";
 
@@ -73,14 +75,43 @@ export default function ExamWindow() {
   const violationInProgressRef = useRef(false);
   const flatQuestionsRef = useRef([]);
   const devToolsIntervalRef = useRef(null);
+  const violationToastRef = useRef(null);
+  const rightClickHandledRef = useRef(false);
   /* =====================================================
    3️⃣ DERIVED HELPERS
 ===================================================== */
 
   /* ---------- 1. FLATTEN PASSAGE QUESTIONS ---------- */
 
+  const getTextByLanguage = (obj, lang) => {
+    if (!obj) return "";
 
-  
+    // If object is string (old data support)
+    if (typeof obj === "string") return obj;
+
+    // 1️⃣ Try selected language
+    if (obj[lang]) return obj[lang];
+
+    // 2️⃣ Fallback to english
+    if (obj.english) return obj.english;
+
+    // 3️⃣ Fallback to hindi
+    if (obj.hindi) return obj.hindi;
+
+    return "";
+  };
+
+  const showViolationToast = (message) => {
+    if (violationToastRef.current) return;
+
+    violationToastRef.current = toast.error(message, {
+      duration: 3000,
+      onClose: () => {
+        violationToastRef.current = null;
+      },
+    });
+  };
+
 
   const flattenQuestions = (questions) => {
     const result = [];
@@ -256,9 +287,14 @@ export default function ExamWindow() {
       setLoading(false);
 
     } catch (err) {
-      console.error("Exam Init Error:", err);
-      setError("Failed to load exam.");
+      const message =
+        err?.response?.data?.message ||
+        "Failed to load exam. Please refresh and try again.";
+
+      setError(message);
       setLoading(false);
+
+      toast.error(message);
     }
   };
 
@@ -290,33 +326,140 @@ export default function ExamWindow() {
     }, 15000);
   };
 
-const startSecurityRestrictions = () => {
+  const startSecurityRestrictions = () => {
 
-  const blockKeys = (e) => {
-    // Copy / Paste / Cut / Save
-    if (
-      (e.ctrlKey && ["c", "v", "x", "a", "s", "u"].includes(e.key.toLowerCase())) ||
-      e.key === "F12" ||
-      (e.ctrlKey && e.shiftKey && ["I", "J", "C"].includes(e.key))
-    ) {
-      e.preventDefault();
-      triggerLocalWarning("KEYBOARD_OR_DEVTOOLS");
-    }
-  };
+    /* ================================
+       1️⃣ BLOCK KEYBOARD SHORTCUTS
+    ================================= */
+    const blockKeys = (e) => {
+      const key = e.key.toLowerCase();
 
-  const blockRightClick = (e) => {
-    e.preventDefault();
-    triggerLocalWarning("RIGHT_CLICK");
-  };
+      // Copy / Paste / Cut / Select All / Save / View Source
+      if (
+        (e.ctrlKey && ["c", "v", "x", "a", "s", "u", "p"].includes(key)) ||
+        (e.ctrlKey && e.shiftKey && ["i", "j", "c"].includes(key)) ||
+        key === "f12"
+      ) {
+        e.preventDefault();
+        triggerLocalWarning("KEYBOARD_BLOCKED");
+      }
+    };
 
-  document.addEventListener("keydown", blockKeys);
-  document.addEventListener("contextmenu", blockRightClick);
 
-  return () => {
-    document.removeEventListener("keydown", blockKeys);
-    document.removeEventListener("contextmenu", blockRightClick);
-  };
+    /* ================================
+       2️⃣ BLOCK RIGHT CLICK
+    ================================= */
+    const blockRightClick = (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+
+  // 👇 prevent multiple toast from same click
+  if (rightClickHandledRef.current) return;
+
+  rightClickHandledRef.current = true;
+
+  triggerLocalWarning("RIGHT_CLICK");
+
+  setTimeout(() => {
+    rightClickHandledRef.current = false;
+  }, 200); // small delay enough
 };
+
+
+    /* ================================
+       3️⃣ BLOCK SCREENSHOT KEY
+    ================================= */
+    const blockScreenshot = (e) => {
+      if (e.key === "PrintScreen") {
+        e.preventDefault();
+        triggerLocalWarning("SCREENSHOT_KEY");
+
+        // Optional clipboard override trick
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText("Screenshot is disabled.");
+        }
+      }
+    };
+
+
+    /* ================================
+       4️⃣ BLOCK DRAG
+    ================================= */
+    const blockDrag = (e) => {
+      e.preventDefault();
+      triggerLocalWarning("DRAG_ATTEMPT");
+    };
+
+
+    /* ================================
+       5️⃣ BLOCK TEXT SELECTION
+    ================================= */
+    const blockSelect = (e) => {
+      e.preventDefault();
+    };
+
+
+    /* ================================
+       6️⃣ BLUR ON TAB SWITCH
+    ================================= */
+    const blurOnTabSwitch = () => {
+      if (document.hidden) {
+        document.body.style.filter = "blur(8px)";
+      } else {
+        document.body.style.filter = "none";
+      }
+    };
+
+
+    /* ================================
+       7️⃣ DETECT WINDOW RESIZE (Split Screen)
+    ================================= */
+    const detectResize = () => {
+      if (window.outerWidth < screen.width * 0.85) {
+        triggerLocalWarning("WINDOW_RESIZE");
+      }
+    };
+
+
+    /* ================================
+       APPLY CSS PROTECTION
+    ================================= */
+    document.body.style.userSelect = "none";
+    document.body.style.webkitUserSelect = "none";
+    document.body.style.msUserSelect = "none";
+
+
+    /* ================================
+       ADD ALL LISTENERS
+    ================================= */
+    document.addEventListener("keydown", blockKeys);
+    document.addEventListener("keyup", blockScreenshot);
+    document.addEventListener("contextmenu", blockRightClick);
+    document.addEventListener("dragstart", blockDrag);
+    document.addEventListener("selectstart", blockSelect);
+    document.addEventListener("visibilitychange", blurOnTabSwitch);
+    document.addEventListener("keydown", blockDevTools);
+    window.addEventListener("resize", detectResize);
+
+
+    /* ================================
+       RETURN CLEANUP FUNCTION
+    ================================= */
+    return () => {
+      document.removeEventListener("keydown", blockKeys);
+      document.removeEventListener("keyup", blockScreenshot);
+      document.removeEventListener("contextmenu", blockRightClick);
+      document.removeEventListener("dragstart", blockDrag);
+      document.removeEventListener("selectstart", blockSelect);
+      document.removeEventListener("visibilitychange", blurOnTabSwitch);
+      window.removeEventListener("resize", detectResize);
+
+      document.body.style.userSelect = "";
+      document.body.style.webkitUserSelect = "";
+      document.body.style.msUserSelect = "";
+      document.body.style.filter = "";
+    };
+  };
 
   const blockDevTools = (e) => {
     if (
@@ -329,20 +472,17 @@ const startSecurityRestrictions = () => {
     }
   };
 
-  const triggerLocalWarning = async (type) => {
-    console.log("Security violation:", type);
+  const triggerLocalWarning = (type) => {
+    // 🔥 Always show toast (no lock, no cooldown)
+    toast.error("Action not allowed in exam!", {
+      duration: 1500,
+    });
 
-
-    alert("This click are not allowed");
-
-    try {
-      await axios.post("/attempts/violation", {
-        attemptId,
-        type,
-      });
-    } catch (err) {
-      console.log("Violation sync failed");
-    }
+    // Backend sync (non-blocking)
+    axios.post("/attempts/violation", {
+      attemptId,
+      type,
+    }).catch(() => { });
   };
 
 
@@ -353,19 +493,17 @@ const startSecurityRestrictions = () => {
     const triggerViolation = async (type) => {
       const now = Date.now();
 
-      // 🚫 1. Prevent spam within 2 sec
-      if (now - lastViolationTimeRef.current < 2000) {
-        return;
-      }
-
-      // 🚫 2. Prevent concurrent API calls
+      // 🔥 HARD LOCK (Prevents double fire)
       if (violationInProgressRef.current) return;
+
+      // 🔥 3 second cooldown
+      if (now - lastViolationTimeRef.current < 3000) return;
 
       violationInProgressRef.current = true;
       lastViolationTimeRef.current = now;
 
       try {
-        console.log("Violation detected:", type);
+        showViolationToast("Violation detected!");
 
         const res = await axios.post("/attempts/violation", {
           attemptId,
@@ -375,8 +513,7 @@ const startSecurityRestrictions = () => {
         setViolations((prev) => prev + 1);
 
         if (res.data?.shouldAutoSubmit) {
-          console.log("⚠️ Violation exceeded. Current answersRef:", answersRef.current);
-          alert("Maximum violations reached. Submitting exam...");
+          showViolationToast("Maximum violations reached. Submitting exam...");
           handleSubmit(true);
           return;
         }
@@ -384,42 +521,45 @@ const startSecurityRestrictions = () => {
         setShowWarning(true);
 
       } catch (error) {
-        console.error("Violation API error:", error);
-        setViolations((prev) => prev + 1);
-        setShowWarning(true);
+        showViolationToast(
+          error?.response?.data?.message ||
+          "Security sync failed."
+        );
       } finally {
-        violationInProgressRef.current = false;
+        // small delay before unlocking
+        setTimeout(() => {
+          violationInProgressRef.current = false;
+        }, 1000);
       }
     };
 
     const detectDevTools = () => {
-  const threshold = 160;
+      const threshold = 160;
 
-  const widthDiff = window.outerWidth - window.innerWidth > threshold;
-  const heightDiff = window.outerHeight - window.innerHeight > threshold;
+      const widthDiff = window.outerWidth - window.innerWidth > threshold;
+      const heightDiff = window.outerHeight - window.innerHeight > threshold;
 
-  if (widthDiff || heightDiff) {
-    triggerViolation("DEVTOOLS_OPEN");
-  }
-};
+      if (widthDiff || heightDiff) {
+        triggerViolation("DEVTOOLS_OPEN");
+      }
+    };
 
-devToolsIntervalRef.current = setInterval(detectDevTools, 1000);
+    devToolsIntervalRef.current = setInterval(() => {
+      if (violationInProgressRef.current) return;
+      detectDevTools();
+    }, 2000);
 
-    
     /* ===============================
        FULLSCREEN EXIT DETECTION
     =============================== */
     const handleFullscreenChange = () => {
-      if (!document.fullscreenElement && !showWarning) {
+      if (!document.fullscreenElement && !showWarning && !violationInProgressRef.current) {
         triggerViolation("FULLSCREEN");
       }
     };
 
-    /* ===============================
-       TAB SWITCH DETECTION
-    =============================== */
     const handleVisibilityChange = () => {
-      if (document.hidden && !showWarning) {
+      if (document.hidden && !showWarning && !violationInProgressRef.current) {
         triggerViolation("TAB");
       }
     };
@@ -437,7 +577,10 @@ devToolsIntervalRef.current = setInterval(detectDevTools, 1000);
       document.documentElement
         .requestFullscreen()
         .catch(() => {
-          console.warn("Fullscreen request blocked by browser");
+          toast.error("Fullscreen is mandatory for this exam.", {
+            icon: "🖥️",
+            duration: 4000,
+          });
         });
     }
   };
@@ -446,32 +589,32 @@ devToolsIntervalRef.current = setInterval(detectDevTools, 1000);
 
   /* ---------- CLEANUP ---------- */
 
-const cleanup = () => {
-  clearInterval(timerRef.current);
-  clearInterval(heartbeatRef.current);
+  const cleanup = () => {
+    clearInterval(timerRef.current);
+    clearInterval(heartbeatRef.current);
 
-  if (devToolsIntervalRef.current) {
-    clearInterval(devToolsIntervalRef.current);
-  }
+    if (devToolsIntervalRef.current) {
+      clearInterval(devToolsIntervalRef.current);
+    }
 
-  if (fullscreenHandlerRef.current) {
-    document.removeEventListener(
-      "fullscreenchange",
-      fullscreenHandlerRef.current
-    );
-  }
+    if (fullscreenHandlerRef.current) {
+      document.removeEventListener(
+        "fullscreenchange",
+        fullscreenHandlerRef.current
+      );
+    }
 
-  if (visibilityHandlerRef.current) {
-    document.removeEventListener(
-      "visibilitychange",
-      visibilityHandlerRef.current
-    );
-  }
+    if (visibilityHandlerRef.current) {
+      document.removeEventListener(
+        "visibilitychange",
+        visibilityHandlerRef.current
+      );
+    }
 
-  if (securityCleanupRef.current) {
-    securityCleanupRef.current();
-  }
-};
+    if (securityCleanupRef.current) {
+      securityCleanupRef.current();
+    }
+  };
 
 
 
@@ -514,7 +657,6 @@ const cleanup = () => {
       // 🔥 immediately sync ref
       answersRef.current = updatedMap;
 
-      console.log("🟢 Updated answersMap:", updatedMap);
 
       return updatedMap;
     });
@@ -581,7 +723,6 @@ const cleanup = () => {
   /* ---------- BUILD PAYLOAD ---------- */
 
   const buildPayload = () => {
-    console.log("📦 answersRef before build:", answersRef.current);
 
     const answers = [];
 
@@ -602,7 +743,6 @@ const cleanup = () => {
       });
     });
 
-    console.log("📦 Final Payload Answers:", answers);
 
     return answers;
   };
@@ -614,10 +754,29 @@ const cleanup = () => {
     if (submittingRef.current) return;
 
     if (!skipConfirm) {
-      const confirmSubmit = window.confirm(
-        "Are you sure you want to submit the exam?"
-      );
-      if (!confirmSubmit) return;
+      toast((t) => (
+        <div className="flex flex-col gap-3">
+          <span>Are you sure you want to submit?</span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                toast.dismiss(t.id);
+                handleSubmit(true);
+              }}
+              className="px-3 py-1 bg-green-600 text-white text-xs rounded"
+            >
+              Yes
+            </button>
+            <button
+              onClick={() => toast.dismiss(t.id)}
+              className="px-3 py-1 bg-gray-300 text-xs rounded"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ));
+      return;
     }
 
     submittingRef.current = true;
@@ -628,7 +787,6 @@ const cleanup = () => {
 
       const payload = buildPayload();
 
-      console.log("🚀 Submitting with payload:", payload);
 
       await axios.post("/attempts/submit", {
         attemptId,
@@ -644,9 +802,13 @@ const cleanup = () => {
       navigate("/student/dashboard");
 
     } catch (err) {
-      console.error("Submit Error:", err);
       submittingRef.current = false;
-      alert("Submission failed. Please try again.");
+
+      const message =
+        err?.response?.data?.message ||
+        "Submission failed. Please try again.";
+
+      toast.error(message);
     }
   };
 
@@ -672,6 +834,11 @@ const cleanup = () => {
 
   return (
     <div className="fixed inset-0 flex flex-col bg-[#FDFEFF] font-sans">
+
+      {/* 🔐 WATERMARK */}
+      <div className="fixed inset-0 pointer-events-none flex items-center justify-center text-7xl font-black text-gray-400 opacity-20 rotate-[-30deg] select-none z-40 tracking-widest">
+        {test?.name} • {attemptId}
+      </div>
 
       {/* ================= HEADER ================= */}
       <div className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shadow-sm">
@@ -738,8 +905,7 @@ const cleanup = () => {
               {/* Passage */}
               {currentQuestion.passageText && (
                 <div className="text-slate-700 leading-relaxed whitespace-pre-line">
-                  {currentQuestion.passageText?.[language] ||
-                    currentQuestion.passageText?.english}
+                  {getTextByLanguage(currentQuestion.passageText, language)}
                 </div>
               )}
 

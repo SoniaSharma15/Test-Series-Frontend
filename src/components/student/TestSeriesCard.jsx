@@ -2,6 +2,7 @@ import { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "../../services/axiosInstance";
 import { AuthContext } from "../../context/AuthContext";
+import toast from "react-hot-toast";
 import {
   Zap, Globe, Calendar, Clock, ChevronRight,
   Sparkles, CheckCircle, Star, ShieldCheck
@@ -11,30 +12,71 @@ export default function TestSeriesCard({ series }) {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  const handleEnroll = async () => {
-    if (!user) { navigate("/login"); return; }
-    if (series.isEnrolled) return;
+const handleEnroll = async () => {
+  if (!user) {
+    toast("Please login to continue 🔐");
+    navigate("/login");
+    return;
+  }
 
-    try {
-      const orderRes = await axios.post("/payment/create-order", { testSeriesId: series._id });
-      const options = {
-        key: orderRes.data.key,
-        amount: orderRes.data.amount,
-        order_id: orderRes.data.orderId,
-        name:"Brilliant Bihar Test Series",
-          description: "Payment for Test Series",
+  if (series.isEnrolled) {
+    toast.success("You are already enrolled ✅");
+    return;
+  }
 
-        handler: async function (response) {
-          await axios.post("/payment/verify", { ...response, testSeriesId: series._id });
+  let loadingToast;
+
+  try {
+    loadingToast = toast.loading("Creating payment session...");
+
+    const orderRes = await axios.post("/payment/create-order", {
+      testSeriesId: series._id,
+    });
+
+    toast.dismiss(loadingToast);
+
+    const options = {
+      key: orderRes.data.key,
+      amount: orderRes.data.amount,
+      order_id: orderRes.data.orderId,
+      name: "Brilliant Bihar Test Series",
+      description: "Payment for Test Series",
+
+      handler: async function (response) {
+        let verifyToast;
+        try {
+          verifyToast = toast.loading("Verifying payment...");
+
+          await axios.post("/payment/verify", {
+            ...response,
+            testSeriesId: series._id,
+          });
+
+          toast.dismiss(verifyToast);
+          toast.success("Enrollment Successful 🎉");
+
           navigate("/student/my-tests");
-        },
-      };
-      const rzp = new window.Razorpay(options);
-      rzp.open();
-    } catch (error) {
-      console.error("Enrollment failed", error);
-    }
-  };
+
+        } catch (err) {
+          toast.dismiss(verifyToast);
+          toast.error("Payment verification failed ❌");
+        }
+      },
+    };
+
+    const rzp = new window.Razorpay(options);
+
+    rzp.on("payment.failed", function () {
+      toast.error("Payment failed ❌");
+    });
+
+    rzp.open();
+
+  } catch (error) {
+    toast.dismiss(loadingToast);
+    toast.error("Enrollment failed. Please try again ❌");
+  }
+};
 
   return (
     <div className="w-full max-w-[345px] rounded-[2.5rem] bg-white border border-slate-200 hover:border-blue-500 hover:shadow-[0_30px_60px_-15px_rgba(37,99,235,0.12)] transition-all duration-500 flex flex-col group mx-auto overflow-hidden">

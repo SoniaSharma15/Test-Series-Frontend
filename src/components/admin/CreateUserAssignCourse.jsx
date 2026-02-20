@@ -1,6 +1,7 @@
 import { useState } from "react";
 import axios from "../../services/axiosInstance";
 import { UserCog, RefreshCw } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function CreateUserAssignCourse({ seriesList }) {
   /* ---------------- STATE ---------------- */
@@ -56,49 +57,61 @@ export default function CreateUserAssignCourse({ seriesList }) {
 
   /* ---------------- SUBMIT ---------------- */
   const handleSubmit = async () => {
-    const validationError = validateForm();
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
+  const validationError = validateForm();
 
+  if (validationError) {
+    setError(validationError);
+    toast.error(validationError);
+    return;
+  }
+
+  let loadingToast;
+
+  try {
     setLoading(true);
     setError("");
     setMessage("");
 
-    try {
-      await axios.post("/user/create-user", {
-        name: form.name,
-        email: form.email,
-        mobile: form.mobile,   // ✅ added
-        password: form.password,
-        role: form.role,
-        testSeriesId:
-          form.role === "student" ? form.testSeriesId : null,
-      });
+    loadingToast = toast.loading("Creating user account...");
 
+    await axios.post("/user/create-user", {
+      name: form.name,
+      email: form.email,
+      mobile: form.mobile,
+      password: form.password,
+      role: form.role,
+      testSeriesId:
+        form.role === "student" ? form.testSeriesId : null,
+    });
 
-      setMessage("User created successfully");
+    toast.dismiss(loadingToast);
+    toast.success("User created successfully 🎉");
 
-      // Reset form
-      setForm({
-        name: "",
-        email: "",
-        mobile: "",   // ✅ added
-        password: "",
-        role: "student",
-        testSeriesId: "",
-      });
+    setMessage("User created successfully");
 
+    // Reset form
+    setForm({
+      name: "",
+      email: "",
+      mobile: "",
+      password: "",
+      role: "student",
+      testSeriesId: "",
+    });
 
-    } catch (err) {
-      setError(
-        err.response?.data?.message || "Failed to create user"
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+  } catch (err) {
+    toast.dismiss(loadingToast);
+
+    const errorMessage =
+      err.response?.data?.message || "Failed to create user ❌";
+
+    setError(errorMessage);
+    toast.error(errorMessage);
+
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
   <section className="bg-white rounded-[2.5rem] border border-slate-200/60 shadow-sm overflow-hidden flex flex-col

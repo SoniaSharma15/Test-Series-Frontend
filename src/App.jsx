@@ -1,7 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useContext } from "react";
 import { AuthContext } from "./context/AuthContext";
-
+import { Toaster } from "react-hot-toast";
 import Navbar from "./components/common/Navbar";
 import Home from "./pages/Home";
 import Login from "./pages/auth/Login";
@@ -44,6 +44,18 @@ const ProtectedRoute = ({ children, role }) => {
 function App() {
   return (
     <>
+     {/* ✅ TOASTER MUST BE HERE */}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          style: {
+            background: "#0f172a",
+            color: "#fff",
+            borderRadius: "12px",
+            fontWeight: "bold",
+          },
+        }}
+      />
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<><Navbar /><Home /></>} />

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import axios from "../../services/axiosInstance";
+import toast from "react-hot-toast";
 import {
   UserPlus,
   Search,
@@ -21,70 +22,101 @@ export default function ManualEnrollment({ seriesList }) {
   const [assignMessage, setAssignMessage] = useState("");
 
   /* ================= SEARCH STUDENT ================= */
-  const searchAssignStudent = async () => {
-    if (!assignEmail.trim()) {
-      setAssignError("Please enter student email");
-      return;
-    }
+const searchAssignStudent = async () => {
+  if (!assignEmail.trim()) {
+    setAssignError("Please enter student email");
+    toast.error("Please enter student email ❌");
+    return;
+  }
 
+  let loadingToast;
+
+  try {
     setAssignSearching(true);
     setAssignError("");
     setAssignMessage("");
     setAssignStudent(null);
 
-    try {
-      const res = await axios.get(
-        `/user/student-by-email?email=${assignEmail}`
-      );
+    loadingToast = toast.loading("Searching student...");
 
-      const student = res.data.data || res.data;
-      setAssignStudent(student);
-      setAssignMessage("Student found successfully");
-    } catch (error) {
-      if (error.response?.status === 404) {
-        setAssignError("Student not found");
-      } else {
-        setAssignError("Failed to search student");
-      }
-      setAssignStudent(null);
-    } finally {
-      setAssignSearching(false);
+    const res = await axios.get(
+      `/user/student-by-email?email=${assignEmail}`
+    );
+
+    const student = res.data.data || res.data;
+
+    toast.dismiss(loadingToast);
+    toast.success("Student verified successfully ✅");
+
+    setAssignStudent(student);
+    setAssignMessage("Student found successfully");
+
+  } catch (error) {
+    toast.dismiss(loadingToast);
+
+    if (error.response?.status === 404) {
+      setAssignError("Student not found");
+      toast.error("Student not found ❌");
+    } else {
+      setAssignError("Failed to search student");
+      toast.error("Failed to search student ❌");
     }
-  };
+
+    setAssignStudent(null);
+
+  } finally {
+    setAssignSearching(false);
+  }
+};
 
   /* ================= ASSIGN COURSE ================= */
-  const handleAssign = async () => {
-    if (!selectedSeries) {
-      setAssignError("Select test series");
-      return;
-    }
+const handleAssign = async () => {
+  if (!selectedSeries) {
+    setAssignError("Select test series");
+    toast.error("Please select a test series ❌");
+    return;
+  }
 
-    if (!assignStudent?._id) {
-      setAssignError("Search student first");
-      return;
-    }
+  if (!assignStudent?._id) {
+    setAssignError("Search student first");
+    toast.error("Search student first ❌");
+    return;
+  }
 
+  let loadingToast;
+
+  try {
     setAssignLoading(true);
     setAssignError("");
     setAssignMessage("");
 
-    try {
-      await axios.post("/user/assign-test-series", {
-        studentId: assignStudent._id,
-        testSeriesId: selectedSeries,
-      });
+    loadingToast = toast.loading("Assigning course...");
 
-      setAssignMessage("Course Assigned Successfully");
-    } catch (error) {
-      if (error.response?.status === 409) {
-        setAssignError("Course already assigned to this student");
-      } else {
-        setAssignError("Failed to assign course");
-      }
-    } finally {
-      setAssignLoading(false);
+    await axios.post("/user/assign-test-series", {
+      studentId: assignStudent._id,
+      testSeriesId: selectedSeries,
+    });
+
+    toast.dismiss(loadingToast);
+    toast.success("Course Assigned Successfully 🎉");
+
+    setAssignMessage("Course Assigned Successfully");
+
+  } catch (error) {
+    toast.dismiss(loadingToast);
+
+    if (error.response?.status === 409) {
+      setAssignError("Course already assigned to this student");
+      toast.error("Course already assigned ❌");
+    } else {
+      setAssignError("Failed to assign course");
+      toast.error("Failed to assign course ❌");
     }
-  };
+
+  } finally {
+    setAssignLoading(false);
+  }
+};
 
   return (
     <section className="bg-white rounded-[2.5rem] border border-slate-200/60 shadow-sm overflow-hidden flex flex-col">

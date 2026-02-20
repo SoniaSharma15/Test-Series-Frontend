@@ -1,5 +1,6 @@
 import { useState } from "react";
 import axios from "../../services/axiosInstance";
+import toast from "react-hot-toast";
 import {
   KeyRound,
   Search,
@@ -21,74 +22,106 @@ export default function CredentialReset() {
   const [resetMessage, setResetMessage] = useState("");
 
   /* ================= SEARCH STUDENT ================= */
-  const searchResetStudent = async () => {
-    if (!resetEmail.trim()) {
-      setResetError("Please enter student email");
-      return;
-    }
+const searchResetStudent = async () => {
+  if (!resetEmail.trim()) {
+    setResetError("Please enter student email");
+    toast.error("Please enter student email ❌");
+    return;
+  }
 
+  let loadingToast;
+
+  try {
     setResetSearching(true);
     setResetError("");
     setResetMessage("");
     setResetStudent(null);
 
-    try {
-      const res = await axios.get(
-        `/user/student-by-email?email=${resetEmail}`
-      );
+    loadingToast = toast.loading("Searching student...");
 
-      const student = res.data.data || res.data;
-      setResetStudent(student);
-      setResetMessage("Student found successfully");
-    } catch (error) {
-      if (error.response?.status === 404) {
-        setResetError("Student not found");
-      } else {
-        setResetError("Failed to search student");
-      }
-      setResetStudent(null);
-    } finally {
-      setResetSearching(false);
+    const res = await axios.get(
+      `/user/student-by-email?email=${resetEmail}`
+    );
+
+    const student = res.data.data || res.data;
+
+    toast.dismiss(loadingToast);
+    toast.success("Student found successfully ✅");
+
+    setResetStudent(student);
+    setResetMessage("Student found successfully");
+
+  } catch (error) {
+    toast.dismiss(loadingToast);
+
+    if (error.response?.status === 404) {
+      setResetError("Student not found");
+      toast.error("Student not found ❌");
+    } else {
+      setResetError("Failed to search student");
+      toast.error("Failed to search student ❌");
     }
-  };
+
+    setResetStudent(null);
+
+  } finally {
+    setResetSearching(false);
+  }
+};
 
   /* ================= RESET PASSWORD ================= */
-  const handleResetPassword = async () => {
-    if (!newPassword.trim()) {
-      setResetError("Enter new password");
-      return;
-    }
+const handleResetPassword = async () => {
+  if (!newPassword.trim()) {
+    setResetError("Enter new password");
+    toast.error("Enter new password ❌");
+    return;
+  }
 
-    if (newPassword.length < 6) {
-      setResetError("Password must be at least 6 characters");
-      return;
-    }
+  if (newPassword.length < 6) {
+    setResetError("Password must be at least 6 characters");
+    toast.error("Password must be at least 6 characters ❌");
+    return;
+  }
 
-    if (!resetStudent?._id) {
-      setResetError("Search student first");
-      return;
-    }
+  if (!resetStudent?._id) {
+    setResetError("Search student first");
+    toast.error("Search student first ❌");
+    return;
+  }
 
+  let loadingToast;
+
+  try {
     setResetLoading(true);
     setResetError("");
     setResetMessage("");
 
-    try {
-      await axios.put("/user/change-password", {
-        studentId: resetStudent._id,
-        newPassword,
-      });
+    loadingToast = toast.loading("Resetting password...");
 
-      setResetMessage("Password Reset Successfully");
-      setNewPassword("");
-    } catch (error) {
-      setResetError(
-        error.response?.data?.message || "Failed to reset password"
-      );
-    } finally {
-      setResetLoading(false);
-    }
-  };
+    await axios.put("/user/change-password", {
+      studentId: resetStudent._id,
+      newPassword,
+    });
+
+    toast.dismiss(loadingToast);
+    toast.success("Password Reset Successfully 🔐");
+
+    setResetMessage("Password Reset Successfully");
+    setNewPassword("");
+
+  } catch (error) {
+    toast.dismiss(loadingToast);
+
+    const errorMessage =
+      error.response?.data?.message || "Failed to reset password ❌";
+
+    setResetError(errorMessage);
+    toast.error(errorMessage);
+
+  } finally {
+    setResetLoading(false);
+  }
+};
 
   return (
     <section className="bg-white rounded-[2.5rem] border border-slate-200/60 shadow-sm overflow-hidden flex flex-col">

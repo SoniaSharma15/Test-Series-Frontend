@@ -330,7 +330,7 @@ const startSecurityRestrictions = () => {
   };
 
   const triggerLocalWarning = async (type) => {
-    console.log("Security violation:", type);
+  
 
 
     alert("This click are not allowed");
@@ -341,7 +341,7 @@ const startSecurityRestrictions = () => {
         type,
       });
     } catch (err) {
-      console.log("Violation sync failed");
+   
     }
   };
 
@@ -365,7 +365,7 @@ const startSecurityRestrictions = () => {
       lastViolationTimeRef.current = now;
 
       try {
-        console.log("Violation detected:", type);
+        
 
         const res = await axios.post("/attempts/violation", {
           attemptId,
@@ -375,7 +375,7 @@ const startSecurityRestrictions = () => {
         setViolations((prev) => prev + 1);
 
         if (res.data?.shouldAutoSubmit) {
-          console.log("⚠️ Violation exceeded. Current answersRef:", answersRef.current);
+        
           alert("Maximum violations reached. Submitting exam...");
           handleSubmit(true);
           return;
@@ -514,7 +514,7 @@ const cleanup = () => {
       // 🔥 immediately sync ref
       answersRef.current = updatedMap;
 
-      console.log("🟢 Updated answersMap:", updatedMap);
+   
 
       return updatedMap;
     });
@@ -581,7 +581,7 @@ const cleanup = () => {
   /* ---------- BUILD PAYLOAD ---------- */
 
   const buildPayload = () => {
-    console.log("📦 answersRef before build:", answersRef.current);
+    
 
     const answers = [];
 
@@ -602,7 +602,7 @@ const cleanup = () => {
       });
     });
 
-    console.log("📦 Final Payload Answers:", answers);
+   
 
     return answers;
   };
@@ -628,7 +628,7 @@ const cleanup = () => {
 
       const payload = buildPayload();
 
-      console.log("🚀 Submitting with payload:", payload);
+     
 
       await axios.post("/attempts/submit", {
         attemptId,

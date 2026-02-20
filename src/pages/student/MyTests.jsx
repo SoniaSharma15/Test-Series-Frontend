@@ -112,9 +112,7 @@ export default function MyTests() {
                           </div>
                           <div className="flex items-center gap-1.5 bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full border border-emerald-100 shadow-inner">
                             <Trophy size={14} />
-                            <span className="text-xs font-black uppercase tracking-tighter">
-                              Best: {testItem.bestScore ?? 0}%
-                            </span>
+                            
                           </div>
                         </div>
 

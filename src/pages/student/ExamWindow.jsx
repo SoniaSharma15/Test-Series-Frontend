@@ -63,17 +63,24 @@ export default function ExamWindow() {
   const examEndRef = useRef(null);
   const submittingRef = useRef(false);
   const answersRef = useRef({});
-
+  const securityCleanupRef = useRef(null);
 
   const fullscreenHandlerRef = useRef(null);
-const visibilityHandlerRef = useRef(null);
-const [showWarning, setShowWarning] = useState(false);
-
+  const visibilityHandlerRef = useRef(null);
+  const [showWarning, setShowWarning] = useState(false);
+  const violationLockRef = useRef(false);
+  const lastViolationTimeRef = useRef(0);
+  const violationInProgressRef = useRef(false);
+  const flatQuestionsRef = useRef([]);
+  const devToolsIntervalRef = useRef(null);
   /* =====================================================
    3️⃣ DERIVED HELPERS
 ===================================================== */
 
   /* ---------- 1. FLATTEN PASSAGE QUESTIONS ---------- */
+
+
+  
 
   const flattenQuestions = (questions) => {
     const result = [];
@@ -134,6 +141,8 @@ const [showWarning, setShowWarning] = useState(false);
   };
 
 
+
+
   /* ---------- 2. CURRENT QUESTION ---------- */
 
   const currentQuestion = useMemo(() => {
@@ -186,19 +195,19 @@ const [showWarning, setShowWarning] = useState(false);
   }, []);
 
   useEffect(() => {
-  if (!currentQuestion) return;
+    if (!currentQuestion) return;
 
-  setVisitedSet((prev) => {
-    const updated = new Set(prev);
-    updated.add(currentQuestion.id);
-    return updated;
-  });
-}, [currentQuestion]);
+    setVisitedSet((prev) => {
+      const updated = new Set(prev);
+      updated.add(currentQuestion.id);
+      return updated;
+    });
+  }, [currentQuestion]);
 
 
   useEffect(() => {
-  answersRef.current = answersMap;
-}, [answersMap]);
+    answersRef.current = answersMap;
+  }, [answersMap]);
 
 
   const initExam = async () => {
@@ -218,6 +227,7 @@ const [showWarning, setShowWarning] = useState(false);
 
       const flattened = flattenQuestions(questions);
       setFlatQuestions(flattened);
+      flatQuestionsRef.current = flattened;   // 🔥 ADD THIS
 
       /* ---- TIMER SETUP ---- */
 
@@ -240,6 +250,8 @@ const [showWarning, setShowWarning] = useState(false);
       startTimer();
       startHeartbeat();
       startFullscreenMonitor();
+      const cleanupSecurity = startSecurityRestrictions();
+      securityCleanupRef.current = cleanupSecurity;
 
       setLoading(false);
 
@@ -282,44 +294,157 @@ const [showWarning, setShowWarning] = useState(false);
     }, 15000);
   };
 
+const startSecurityRestrictions = () => {
+
+  const blockKeys = (e) => {
+    // Copy / Paste / Cut / Save
+    if (
+      (e.ctrlKey && ["c", "v", "x", "a", "s", "u"].includes(e.key.toLowerCase())) ||
+      e.key === "F12" ||
+      (e.ctrlKey && e.shiftKey && ["I", "J", "C"].includes(e.key))
+    ) {
+      e.preventDefault();
+      triggerLocalWarning("KEYBOARD_OR_DEVTOOLS");
+    }
+  };
+
+  const blockRightClick = (e) => {
+    e.preventDefault();
+    triggerLocalWarning("RIGHT_CLICK");
+  };
+
+  document.addEventListener("keydown", blockKeys);
+  document.addEventListener("contextmenu", blockRightClick);
+
+  return () => {
+    document.removeEventListener("keydown", blockKeys);
+    document.removeEventListener("contextmenu", blockRightClick);
+  };
+};
+
+  const blockDevTools = (e) => {
+    if (
+      e.key === "F12" ||
+      (e.ctrlKey && e.shiftKey && ["I", "J", "C"].includes(e.key)) ||
+      (e.ctrlKey && e.key === "u")
+    ) {
+      e.preventDefault();
+      triggerLocalWarning("DEVTOOLS");
+    }
+  };
+
+  const triggerLocalWarning = async (type) => {
+    console.log("Security violation:", type);
+
+
+    alert("This click are not allowed");
+
+    try {
+      await axios.post("/attempts/violation", {
+        attemptId,
+        type,
+      });
+    } catch (err) {
+      console.log("Violation sync failed");
+    }
+  };
+
 
   /* ---------- FULLSCREEN + VIOLATION MONITOR ---------- */
 
- const startFullscreenMonitor = () => {
+  const startFullscreenMonitor = () => {
 
-  const triggerViolation = () => {
-    setViolations((prev) => {
-      const next = prev + 1;
+    const triggerViolation = async (type) => {
+      const now = Date.now();
 
-      if (next >= 3) {
-        handleSubmit(true);
-      } else {
-        setShowWarning(true);
+      // 🚫 1. Prevent spam within 2 sec
+      if (now - lastViolationTimeRef.current < 2000) {
+        return;
       }
 
-      return next;
-    });
-  };
+      // 🚫 2. Prevent concurrent API calls
+      if (violationInProgressRef.current) return;
 
-  fullscreenHandlerRef.current = () => {
-    if (!document.fullscreenElement) {
-      triggerViolation();
-    }
-  };
+      violationInProgressRef.current = true;
+      lastViolationTimeRef.current = now;
 
-  visibilityHandlerRef.current = () => {
-    if (document.hidden) {
-      triggerViolation();
-    }
-  };
+      try {
+        console.log("Violation detected:", type);
 
-  document.addEventListener("fullscreenchange", fullscreenHandlerRef.current);
-  document.addEventListener("visibilitychange", visibilityHandlerRef.current);
+        const res = await axios.post("/attempts/violation", {
+          attemptId,
+          type,
+        });
 
-  if (!document.fullscreenElement) {
-    document.documentElement.requestFullscreen().catch(() => {});
+        setViolations((prev) => prev + 1);
+
+        if (res.data?.shouldAutoSubmit) {
+          console.log("⚠️ Violation exceeded. Current answersRef:", answersRef.current);
+          alert("Maximum violations reached. Submitting exam...");
+          handleSubmit(true);
+          return;
+        }
+
+        setShowWarning(true);
+
+      } catch (error) {
+        console.error("Violation API error:", error);
+        setViolations((prev) => prev + 1);
+        setShowWarning(true);
+      } finally {
+        violationInProgressRef.current = false;
+      }
+    };
+
+    const detectDevTools = () => {
+  const threshold = 160;
+
+  const widthDiff = window.outerWidth - window.innerWidth > threshold;
+  const heightDiff = window.outerHeight - window.innerHeight > threshold;
+
+  if (widthDiff || heightDiff) {
+    triggerViolation("DEVTOOLS_OPEN");
   }
 };
+
+devToolsIntervalRef.current = setInterval(detectDevTools, 1000);
+
+    
+    /* ===============================
+       FULLSCREEN EXIT DETECTION
+    =============================== */
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement && !showWarning) {
+        triggerViolation("FULLSCREEN");
+      }
+    };
+
+    /* ===============================
+       TAB SWITCH DETECTION
+    =============================== */
+    const handleVisibilityChange = () => {
+      if (document.hidden && !showWarning) {
+        triggerViolation("TAB");
+      }
+    };
+
+    fullscreenHandlerRef.current = handleFullscreenChange;
+    visibilityHandlerRef.current = handleVisibilityChange;
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    /* ===============================
+       ENTER FULLSCREEN (User Required)
+    =============================== */
+    if (!document.fullscreenElement) {
+      document.documentElement
+        .requestFullscreen()
+        .catch(() => {
+          console.warn("Fullscreen request blocked by browser");
+        });
+    }
+  };
 
 
 
@@ -328,6 +453,10 @@ const [showWarning, setShowWarning] = useState(false);
 const cleanup = () => {
   clearInterval(timerRef.current);
   clearInterval(heartbeatRef.current);
+
+  if (devToolsIntervalRef.current) {
+    clearInterval(devToolsIntervalRef.current);
+  }
 
   if (fullscreenHandlerRef.current) {
     document.removeEventListener(
@@ -341,6 +470,10 @@ const cleanup = () => {
       "visibilitychange",
       visibilityHandlerRef.current
     );
+  }
+
+  if (securityCleanupRef.current) {
+    securityCleanupRef.current();
   }
 };
 
@@ -364,32 +497,30 @@ const cleanup = () => {
     const isMSQ = currentQuestion.type === "MSQ";
 
     setAnswersMap((prev) => {
-
       const existing = prev[qKey] || [];
+      let updatedAnswers;
 
-      // MSQ → toggle
       if (isMSQ) {
-
         if (existing.includes(optionId)) {
-          const updated = existing.filter((id) => id !== optionId);
-
-          return {
-            ...prev,
-            [qKey]: updated
-          };
+          updatedAnswers = existing.filter((id) => id !== optionId);
         } else {
-          return {
-            ...prev,
-            [qKey]: [...existing, optionId]
-          };
+          updatedAnswers = [...existing, optionId];
         }
+      } else {
+        updatedAnswers = [optionId];
       }
 
-      // MCQ / MATH / ASSERTION_REASON → single select
-      return {
+      const updatedMap = {
         ...prev,
-        [qKey]: [optionId]
+        [qKey]: updatedAnswers
       };
+
+      // 🔥 immediately sync ref
+      answersRef.current = updatedMap;
+
+      console.log("🟢 Updated answersMap:", updatedMap);
+
+      return updatedMap;
     });
   };
 
@@ -454,25 +585,28 @@ const cleanup = () => {
   /* ---------- BUILD PAYLOAD ---------- */
 
   const buildPayload = () => {
+    console.log("📦 answersRef before build:", answersRef.current);
+
     const answers = [];
 
-Object.keys(answersRef.current).forEach((key) => {
-const selected = answersRef.current[key];
+    Object.keys(answersRef.current).forEach((key) => {
+      const selected = answersRef.current[key];
 
       if (!selected || !selected.length) return;
 
-      const question = flatQuestions.find((q) => q.id === key);
-      if (!question) return;
+      const question = flatQuestionsRef.current.find((q) => q.id === key); if (!question) return;
 
       const isMSQ = question.type === "MSQ";
 
       answers.push({
         questionId: question.parentId,
-        childIndex: question.childIndex,   // IMPORTANT for PASSAGE
+        childIndex: question.childIndex,
         selectedAnswer: !isMSQ ? selected[0] : undefined,
         selectedAnswers: isMSQ ? selected : undefined,
       });
     });
+
+    console.log("📦 Final Payload Answers:", answers);
 
     return answers;
   };
@@ -480,10 +614,10 @@ const selected = answersRef.current[key];
 
   /* ---------- HANDLE SUBMIT ---------- */
 
-  const handleSubmit = async (auto = false) => {
+  const handleSubmit = async (skipConfirm = false) => {
     if (submittingRef.current) return;
 
-    if (!auto) {
+    if (!skipConfirm) {
       const confirmSubmit = window.confirm(
         "Are you sure you want to submit the exam?"
       );
@@ -493,7 +627,12 @@ const selected = answersRef.current[key];
     submittingRef.current = true;
 
     try {
+      // 🔥 freeze latest answers
+      answersRef.current = { ...answersRef.current };
+
       const payload = buildPayload();
+
+      console.log("🚀 Submitting with payload:", payload);
 
       await axios.post("/attempts/submit", {
         attemptId,
@@ -515,185 +654,183 @@ const selected = answersRef.current[key];
     }
   };
 
-/* =====================================================
-   7️⃣ UI LAYOUT
-===================================================== */
+  /* =====================================================
+     7️⃣ UI LAYOUT
+  ===================================================== */
 
-if (loading) {
-  return (
-    <div className="h-screen flex items-center justify-center">
-      Loading Exam...
-    </div>
-  );
-}
-
-if (error) {
-  return (
-    <div className="h-screen flex items-center justify-center text-red-500">
-      {error}
-    </div>
-  );
-}
-
-return (
-  <div className="fixed inset-0 flex flex-col bg-[#FDFEFF] font-sans">
-
-    {/* ================= HEADER ================= */}
-    <div className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shadow-sm">
-
-      <div className="flex items-center gap-4">
-        <button
-          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className="md:hidden p-2 text-slate-500"
-        >
-          ☰
-        </button>
-
-        <h1 className="font-black text-slate-800 text-lg truncate max-w-[300px]">
-          {test?.name}
-        </h1>
+  if (loading) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        Loading Exam...
       </div>
+    );
+  }
 
-      <div className="flex items-center gap-6">
+  if (error) {
+    return (
+      <div className="h-screen flex items-center justify-center text-red-500">
+        {error}
+      </div>
+    );
+  }
 
-        {/* Language Toggle */}
-        <div className="flex bg-slate-100 p-1 rounded-lg">
+  return (
+    <div className="fixed inset-0 flex flex-col bg-[#FDFEFF] font-sans">
+
+      {/* ================= HEADER ================= */}
+      <div className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shadow-sm">
+
+        <div className="flex items-center gap-4">
           <button
-            onClick={() => setLanguage("english")}
-            className={`px-4 py-1 text-xs font-bold rounded-md ${
-              language === "english"
-                ? "bg-white text-blue-600 shadow"
-                : "text-slate-500"
-            }`}
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className="md:hidden p-2 text-slate-500"
           >
-            EN
+            ☰
           </button>
 
-          <button
-            onClick={() => setLanguage("hindi")}
-            className={`px-4 py-1 text-xs font-bold rounded-md ${
-              language === "hindi"
+          <h1 className="font-black text-slate-800 text-lg truncate max-w-[300px]">
+            {test?.name}
+          </h1>
+        </div>
+
+        <div className="flex items-center gap-6">
+
+          {/* Language Toggle */}
+          <div className="flex bg-slate-100 p-1 rounded-lg">
+            <button
+              onClick={() => setLanguage("english")}
+              className={`px-4 py-1 text-xs font-bold rounded-md ${language === "english"
                 ? "bg-white text-blue-600 shadow"
                 : "text-slate-500"
-            }`}
-          >
-            HI
-          </button>
-        </div>
+                }`}
+            >
+              EN
+            </button>
 
-        {/* Timer */}
-        <div className="px-6 py-2 bg-slate-900 text-white rounded-lg font-mono font-bold">
-          {formatTime()}
-        </div>
-      </div>
-    </div>
-
-
-    {/* ================= BODY ================= */}
-    <div className="flex flex-1 overflow-hidden">
-
-      {/* ===== LEFT SPLIT PANEL ===== */}
-      {showSplit && currentQuestion && (
-        <div className="w-[45%] hidden md:flex bg-white border-r border-slate-200 flex-col">
-
-          <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 text-xs font-black uppercase tracking-wider text-blue-600">
-            Reference
+            <button
+              onClick={() => setLanguage("hindi")}
+              className={`px-4 py-1 text-xs font-bold rounded-md ${language === "hindi"
+                ? "bg-white text-blue-600 shadow"
+                : "text-slate-500"
+                }`}
+            >
+              HI
+            </button>
           </div>
 
-          <div className="flex-1 p-6 overflow-y-auto">
+          {/* Timer */}
+          <div className="px-6 py-2 bg-slate-900 text-white rounded-lg font-mono font-bold">
+            {formatTime()}
+          </div>
+        </div>
+      </div>
 
-            {/* Passage */}
-            {currentQuestion.passageText && (
-              <div className="text-slate-700 leading-relaxed whitespace-pre-line">
-                {currentQuestion.passageText?.[language] ||
-                 currentQuestion.passageText?.english}
-              </div>
-            )}
 
-            {/* Image */}
-            {currentQuestion.image && (
-              <div className="mt-6">
-                <img
-                  src={currentQuestion.image}
-                  alt="Question"
-                  className="max-w-full rounded-lg shadow"
-                />
-              </div>
-            )}
+      {/* ================= BODY ================= */}
+      <div className="flex flex-1 overflow-hidden">
+
+        {/* ===== LEFT SPLIT PANEL ===== */}
+        {showSplit && currentQuestion && (
+          <div className="w-[45%] hidden md:flex bg-white border-r border-slate-200 flex-col">
+
+            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 text-xs font-black uppercase tracking-wider text-blue-600">
+              Reference
+            </div>
+
+            <div className="flex-1 p-6 overflow-y-auto">
+
+              {/* Passage */}
+              {currentQuestion.passageText && (
+                <div className="text-slate-700 leading-relaxed whitespace-pre-line">
+                  {currentQuestion.passageText?.[language] ||
+                    currentQuestion.passageText?.english}
+                </div>
+              )}
+
+              {/* Image */}
+              {currentQuestion.image && (
+                <div className="mt-6">
+                  <img
+                    src={currentQuestion.image}
+                    alt="Question"
+                    className="max-w-full rounded-lg shadow"
+                  />
+                </div>
+              )}
+
+            </div>
+          </div>
+        )}
+
+
+        {/* ===== QUESTION PANEL ===== */}
+        <QuestionPanel
+          currentQuestion={currentQuestion}
+          currentIndex={currentIndex}
+          totalQuestions={flatQuestions.length}
+          answersMap={answersMap}
+          language={language}
+          selectOption={selectOption}
+          clearAnswer={clearAnswer}
+          goToNext={goToNext}
+          goToPrevious={goToPrevious}
+          handleSubmit={handleSubmit}
+          toggleReview={toggleReview}   // ✅
+          reviewSet={reviewSet}         // ✅
+        />
+
+
+
+
+        {/* ===== PALETTE ===== */}
+
+        <Palette
+          flatQuestions={flatQuestions}
+          currentIndex={currentIndex}
+          setCurrentIndex={setCurrentIndex}
+          answersMap={answersMap}
+          visitedSet={visitedSet}
+          reviewSet={reviewSet}
+          handleSubmit={handleSubmit}
+        />
+
+      </div>
+      {showWarning && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-sm w-full text-center">
+
+            <div className="text-4xl text-rose-500 mb-4 font-bold">!</div>
+
+            <h2 className="text-xl font-black text-slate-800 mb-3">
+              Rule Violation Detected
+            </h2>
+
+            <p className="text-sm text-slate-600 mb-6">
+              Switching tabs or exiting fullscreen is not allowed.
+              <br />
+              <span className="font-bold text-rose-600">
+                Violations: {violations} / 5
+              </span>
+            </p>
+
+            <button
+              onClick={async () => {
+                setShowWarning(false);
+
+                if (!document.fullscreenElement) {
+                  try {
+                    await document.documentElement.requestFullscreen();
+                  } catch { }
+                }
+              }}
+              className="w-full py-3 bg-slate-900 text-white rounded-lg font-bold text-xs uppercase tracking-wider"
+            >
+              Return to Exam
+            </button>
 
           </div>
         </div>
       )}
-
-
-      {/* ===== QUESTION PANEL ===== */}
-     <QuestionPanel
-  currentQuestion={currentQuestion}
-  currentIndex={currentIndex}
-  totalQuestions={flatQuestions.length}
-  answersMap={answersMap}
-  language={language}
-  selectOption={selectOption}
-  clearAnswer={clearAnswer}
-  goToNext={goToNext}
-  goToPrevious={goToPrevious}
-  handleSubmit={handleSubmit}
-  toggleReview={toggleReview}   // ✅
-  reviewSet={reviewSet}         // ✅
-/>
-
-
-
-
-      {/* ===== PALETTE ===== */}
-      
-<Palette
-  flatQuestions={flatQuestions}
-  currentIndex={currentIndex}
-  setCurrentIndex={setCurrentIndex}
-  answersMap={answersMap}
-  visitedSet={visitedSet}
-  reviewSet={reviewSet}
-  handleSubmit={handleSubmit}
-/>
-
     </div>
-    {showWarning && (
-  <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-    <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-sm w-full text-center">
-
-      <div className="text-4xl text-rose-500 mb-4 font-bold">!</div>
-
-      <h2 className="text-xl font-black text-slate-800 mb-3">
-        Rule Violation Detected
-      </h2>
-
-      <p className="text-sm text-slate-600 mb-6">
-        Switching tabs or exiting fullscreen is not allowed.
-        <br />
-        <span className="font-bold text-rose-600">
-          Violations: {violations} / 3
-        </span>
-      </p>
-
-      <button
-        onClick={async () => {
-          setShowWarning(false);
-
-          if (!document.fullscreenElement) {
-            try {
-              await document.documentElement.requestFullscreen();
-            } catch {}
-          }
-        }}
-        className="w-full py-3 bg-slate-900 text-white rounded-lg font-bold text-xs uppercase tracking-wider"
-      >
-        Return to Exam
-      </button>
-
-    </div>
-  </div>
-)}
-  </div>
-);
+  );
 }

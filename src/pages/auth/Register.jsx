@@ -2,6 +2,7 @@ import { useState, useContext } from "react";
 import axios from "../../services/axiosInstance";
 import { AuthContext } from "../../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
+import toast from "react-hot-toast";
 import {
   User,
   Mail,
@@ -59,31 +60,51 @@ export default function Register() {
   };
 
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setServerError("");
-    const valErrors = validate();
-    if (Object.keys(valErrors).length > 0) return setErrors(valErrors);
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setServerError("");
 
-    try {
-      setLoading(true);
-      const res = await axios.post("/auth/register", {
-        name: form.name.trim(),
-        email: form.email.trim(),
-        mobile: form.mobile.trim(),   // ✅ added
-        password: form.password
-      });
+  const valErrors = validate();
+  if (Object.keys(valErrors).length > 0) {
+    setErrors(valErrors);
+    toast.error("Please correct the form details ❌");
+    return;
+  }
 
+  try {
+    setLoading(true);
 
-      login(res.data);
-      const role = res.data?.user?.role;
-      navigate(role ? `/${role}/dashboard` : "/");
-    } catch (err) {
-      setServerError(err.response?.data?.message || "Node Registration Failed");
-    } finally {
-      setLoading(false);
-    }
-  };
+    const registerPromise = axios.post("/auth/register", {
+      name: form.name.trim(),
+      email: form.email.trim(),
+      mobile: form.mobile.trim(),
+      password: form.password
+    });
+
+    toast.promise(registerPromise, {
+      loading: "Creating Account...",
+      success: "Registration Successful 🎉",
+      error: "Registration Failed ❌"
+    });
+
+    const res = await registerPromise;
+
+    login(res.data);
+
+    const role = res.data?.user?.role;
+    navigate(role ? `/${role}/dashboard` : "/");
+
+  } catch (err) {
+    const message =
+      err.response?.data?.message || "Node Registration Failed";
+
+    setServerError(message);
+    toast.error(message);
+
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC] px-4 font-sans relative overflow-hidden">

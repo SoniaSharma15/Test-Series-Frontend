@@ -85,41 +85,45 @@ export default function CreateTest() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchSeries = async () => {
-    setLoadingSeries(true);
-    setErr("");
-    try {
-      const res = await axios.get("/test-series");
-      const list = Array.isArray(res.data) ? res.data : [];
-      setSeriesList(list);
+const fetchSeries = async () => {
+  setLoadingSeries(true);
+  setErr("");
 
-      // ✅ forced
-      if (forcedSeriesId) {
-        const selected = list.find((s) => s._id === forcedSeriesId);
-        setSubjects(selected?.subjects || []);
-        setForm((p) => ({ ...p, testSeriesId: forcedSeriesId, subjects: [] }));
-        await fetchTests(forcedSeriesId);
-      }
-    } catch (e) {
-      setErr("Failed to load test series");
-    } finally {
-      setLoadingSeries(false);
-    }
-  };
+  try {
+    const res = await axios.get("/test-series");
+    const list = Array.isArray(res.data) ? res.data : [];
+    setSeriesList(list);
 
-  const fetchTests = async (seriesId) => {
-    if (!seriesId) return;
-    setLoadingTests(true);
-    setErr("");
-    try {
-      const res = await axios.get(`/tests/by-series/${seriesId}`);
-      setTests(Array.isArray(res.data) ? res.data : []);
-    } catch (e) {
-      setErr("Failed to load tests for this series");
-    } finally {
-      setLoadingTests(false);
+    if (forcedSeriesId) {
+      const selected = list.find((s) => s._id === forcedSeriesId);
+      setSubjects(selected?.subjects || []);
+      setForm((p) => ({ ...p, testSeriesId: forcedSeriesId, subjects: [] }));
+      await fetchTests(forcedSeriesId);
     }
-  };
+  } catch (e) {
+    setErr("Failed to load test series");
+    toast.error("Failed to load test series");
+  } finally {
+    setLoadingSeries(false);
+  }
+};
+
+const fetchTests = async (seriesId) => {
+  if (!seriesId) return;
+
+  setLoadingTests(true);
+  setErr("");
+
+  try {
+    const res = await axios.get(`/tests/by-series/${seriesId}`);
+    setTests(Array.isArray(res.data) ? res.data : []);
+  } catch (e) {
+    setErr("Failed to load tests");
+    toast.error("Failed to load tests");
+  } finally {
+    setLoadingTests(false);
+  }
+};
 
   const handleSeriesChange = async (id) => {
     const selected = seriesList.find((s) => s._id === id);

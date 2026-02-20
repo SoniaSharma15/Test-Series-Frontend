@@ -13,6 +13,7 @@ import {
   ClipboardList
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import Loader from "../../components/common/Loader";
 
 export default function RecentPerformance() {
   const navigate = useNavigate();
@@ -36,12 +37,7 @@ export default function RecentPerformance() {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#F8FAFC]">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Loading Report</p>
-        </div>
-      </div>
+     <Loader/>
     );
   }
 

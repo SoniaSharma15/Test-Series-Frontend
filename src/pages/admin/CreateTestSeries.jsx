@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import axios from "../../services/axiosInstance";
 import { useNavigate, useParams } from "react-router-dom";
+import toast from "react-hot-toast";
 import AdminSidebar from "../../components/admin/AdminSidebar";
+
 import {
   X,
   UploadCloud,
@@ -13,6 +15,7 @@ import {
   Sparkles,
   BookOpen,
 } from "lucide-react";
+import Loader from "../../components/common/Loader";
 
 export default function CreateTestSeries() {
   const { id } = useParams();
@@ -58,11 +61,11 @@ export default function CreateTestSeries() {
           subjects: Array.isArray(data.subjects) ? data.subjects : [],
         });
         if (data.thumbnail) setPreviewUrl(data.thumbnail);
-      } catch (err) {
-        console.error("Fetch Error:", err);
-      } finally {
-        setLoading(false);
-      }
+} catch (err) {
+  toast.error("Failed to load test series ❌");
+} finally {
+  setLoading(false);
+}
     })();
   }, [isEdit, id]);
 
@@ -111,47 +114,63 @@ useEffect(() => {
 
   const handleChange = (key) => (e) => setForm((p) => ({ ...p, [key]: e.target.value }));
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  let loadingToast;
+
+  try {
     setSubmitting(true);
 
-    try {
-      const formData = new FormData();
-      Object.keys(form).forEach((key) => {
-        if (key === "features" || key === "subjects") {
-          formData.append(key, JSON.stringify(form[key]));
-        } else {
-          formData.append(key, form[key]);
-        }
-      });
+    loadingToast = toast.loading(
+      isEdit ? "Updating test series..." : "Creating test series..."
+    );
 
-      if (thumbnailFile) {
-        formData.append("thumbnail", thumbnailFile);
-      }
+    const formData = new FormData();
 
-      if (isEdit) {
-        await axios.put(`/test-series/${id}`, formData);
+    Object.keys(form).forEach((key) => {
+      if (key === "features" || key === "subjects") {
+        formData.append(key, JSON.stringify(form[key]));
       } else {
-        await axios.post("/test-series", formData);
+        formData.append(key, form[key]);
       }
+    });
 
-      navigate("/admin/test-series");
-    } catch (err) {
-      console.error("Submit Error:", err);
-      alert("Failed to save. Check console.");
-    } finally {
-      setSubmitting(false);
+    if (thumbnailFile) {
+      formData.append("thumbnail", thumbnailFile);
     }
-  };
+
+    if (isEdit) {
+      await axios.put(`/test-series/${id}`, formData);
+    } else {
+      await axios.post("/test-series", formData);
+    }
+
+    toast.dismiss(loadingToast);
+    toast.success(
+      isEdit
+        ? "Test Series Updated Successfully 🎉"
+        : "Test Series Created Successfully 🚀"
+    );
+
+    navigate("/admin/test-series");
+
+  } catch (err) {
+    toast.dismiss(loadingToast);
+
+    const errorMessage =
+      err.response?.data?.message || "Failed to save test series ❌";
+
+    toast.error(errorMessage);
+
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-slate-50">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
-          <p className="text-sm font-bold text-slate-500 tracking-widest uppercase">Initializing Node...</p>
-        </div>
-      </div>
+      <Loader/>
     );
   }
 

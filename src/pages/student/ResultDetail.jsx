@@ -13,6 +13,7 @@ import {
   AlertCircle
 } from "lucide-react";
 import StudentSidebar from "../../components/student/StudentSidebar";
+import Loader from "../../components/common/Loader";
 
 export default function ResultDetail() {
   const { attemptId } = useParams();
@@ -36,12 +37,7 @@ export default function ResultDetail() {
 
   if (!data) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#F8FAFC]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin h-10 w-10 border-4 border-blue-600 border-t-transparent rounded-full" />
-          <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Generating Report...</p>
-        </div>
-      </div>
+      <Loader/>
     );
   }
 

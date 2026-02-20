@@ -3,9 +3,12 @@ import axios from "../../services/axiosInstance";
 import { Sparkles } from "lucide-react";
 import StudentSidebar from "../../components/student/StudentSidebar";
 import TestSeriesCard from "../../components/student/TestSeriesCard";
+import toast from "react-hot-toast";
+import Loader from "../../components/common/Loader";
 
 export default function AllTestSeries() {
   const [series, setSeries] = useState([]);
+  const [loading, setLoading] = useState(false); // ✅ add this
 
   useEffect(() => {
     fetchData();
@@ -13,13 +16,17 @@ export default function AllTestSeries() {
 
   const fetchData = async () => {
     try {
+            setLoading(true); // ✅ start loader
       const res = await axios.get("/test-series");
       setSeries(res.data);
     } catch (error) {
       console.error(error);
     }
+    finally{
+            setLoading(false); // ✅ stop loader
+    }
   };
-
+if(loading) return <Loader/>
   return (
     <div className="flex min-h-screen bg-[#F8FAFC]">
       <StudentSidebar />
@@ -68,7 +75,6 @@ export default function AllTestSeries() {
               ))}
             </div>
           </section>
-
         </div>
       </main>
     </div>

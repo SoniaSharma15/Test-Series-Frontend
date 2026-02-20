@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState, useContext } from "react";
 import axios from "../../services/axiosInstance";
 import { Link } from "react-router-dom";
+import toast from "react-hot-toast";
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import {
   Plus,
@@ -41,6 +42,7 @@ function formatMoney(n) {
 }
 
 export default function TestSeriesList() {
+  const hasFetched = useRef(false);
   const { user } = useContext(AuthContext) || {};
   const role = user?.role || localStorage.getItem("userRole") || "student";
   const canDelete = role === "admin";
@@ -68,31 +70,44 @@ export default function TestSeriesList() {
   const itemRefs = useRef([]);
   const confirmCancelRef = useRef(null);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+useEffect(() => {
+  if (hasFetched.current) return;
+  hasFetched.current = true;
+  fetchData();
+}, []);
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      setError("");
-      const res = await axios.get("/test-series");
-      const payload = res?.data;
-      setSeries(
-        Array.isArray(payload)
-          ? payload
-          : payload?.data && Array.isArray(payload.data)
-            ? payload.data
-            : [],
-      );
-    } catch {
-      setError("Failed to load test series");
-      setSeries([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+const fetchData = async () => {
+  let loadingToast;
 
+  try {
+    setLoading(true);
+    setError("");
+
+    loadingToast = toast.loading("Fetching test series...");
+
+    const res = await axios.get("/test-series");
+    const payload = res?.data;
+
+    setSeries(
+      Array.isArray(payload)
+        ? payload
+        : payload?.data && Array.isArray(payload.data)
+        ? payload.data
+        : []
+    );
+
+    if (loadingToast) toast.dismiss(loadingToast);
+    toast.success("Test series loaded ✅");
+
+  } catch (err) {
+    toast.dismiss(loadingToast);
+    setError("Failed to load test series");
+    setSeries([]);
+    toast.error("Failed to load test series ❌");
+  } finally {
+    setLoading(false);
+  }
+};
   useEffect(() => {
     const onDocPointerDown = (e) => {
       if (!openMenuId) return;
@@ -241,24 +256,37 @@ export default function TestSeriesList() {
     setDeleteTarget(null);
   };
 
-  const confirmDelete = async () => {
-    if (!deleteTarget?.id) return;
-    if (!canDelete) return;
+const confirmDelete = async () => {
+  if (!deleteTarget?.id) return;
+  if (!canDelete) {
+    toast.error("You don't have permission ❌");
+    return;
+  }
 
-    setDeleteLoading(true);
-    try {
-      await axios.delete(`/test-series/${deleteTarget.id}`);
-      setConfirmOpen(false);
-      setDeleteTarget(null);
-      await fetchData();
-    } catch {
-      alert("Delete failed");
-      setConfirmOpen(false);
-      setDeleteTarget(null);
-    } finally {
-      setDeleteLoading(false);
-    }
-  };
+  let loadingToast;
+
+  setDeleteLoading(true);
+
+  try {
+    loadingToast = toast.loading("Deleting test series...");
+
+    await axios.delete(`/test-series/${deleteTarget.id}`);
+
+    toast.dismiss(loadingToast);
+    toast.success("Test series deleted successfully 🗑️");
+
+    setConfirmOpen(false);
+    setDeleteTarget(null);
+
+    await fetchData();
+
+  } catch (err) {
+    toast.dismiss(loadingToast);
+    toast.error(err?.response?.data?.message || "Delete failed ❌");
+  } finally {
+    setDeleteLoading(false);
+  }
+};
 
   return (
     <div className="flex min-h-screen bg-[#F8FAFC]">

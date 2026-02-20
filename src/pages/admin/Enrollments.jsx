@@ -15,6 +15,7 @@ import {
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import toast from "react-hot-toast";
 import EnrollmentTable from "../../components/admin/EnrollmentTable";
+import Loader from "../../components/common/Loader";
 
 function useDebounce(value, delay = 450) {
   const [debounced, setDebounced] = useState(value);
@@ -43,16 +44,17 @@ export default function Enrollments() {
   const [endDate, setEndDate] = useState(""); // YYYY-MM-DD
 
   const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const fetchData = async () => {
     try {
+            setLoading(true); 
       const res = await getEnrollments({
         status: statusFilter,
         source: sourceFilter,
         search: debouncedSearch,
         startDate,
         endDate,
-        // ✅ expired removed
       });
 
       const payload = res?.data;
@@ -70,6 +72,9 @@ export default function Enrollments() {
       setRevenue(0);
       setStatsByStatus([]);
       setStatsBySource([]);
+    }
+    finally{
+      setLoading(false);
     }
   };
 
@@ -154,6 +159,7 @@ export default function Enrollments() {
                 onClick={fetchData}
                 className="p-3 bg-white border border-slate-200 rounded-2xl text-slate-400 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm"
                 title="Refresh"
+                disabled={loading} 
               >
                 <RefreshCcw size={20} />
               </button>
@@ -313,11 +319,18 @@ export default function Enrollments() {
             </div>
 
             {/* Table */}
-            <div className="p-4 sm:p-6">
-              <EnrollmentTable
-                enrollments={data}
-                getStatusBadge={getStatusBadge}
-              />
+            
+           <div className="p-4 sm:p-6">
+              {loading ? (
+                <div className="py-16 flex justify-center">
+                  <Loader />
+                </div>
+              ) : (
+                <EnrollmentTable
+                  enrollments={data}
+                  getStatusBadge={getStatusBadge}
+                />
+              )}
             </div>
 
             {/* Footer */}

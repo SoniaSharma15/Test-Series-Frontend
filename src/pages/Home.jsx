@@ -1,17 +1,24 @@
 import { useEffect, useState } from "react";
 import axios from "../services/axiosInstance";
 import TestSeriesCard from "../components/student/TestSeriesCard";
+import Loader from "../components/common/Loader";
 
 export default function Home() {
   const [series, setSeries] = useState([]);
+  const [loading, setLoading] = useState(false); // ✅ loading state
 
   useEffect(() => {
     fetchSeries();
   }, []);
 
   const fetchSeries = async () => {
-    const res = await axios.get("/test-series");
-    setSeries(res.data);
+    try {
+      setLoading(true);
+      const res = await axios.get("/test-series");
+      setSeries(res.data);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -20,12 +27,15 @@ export default function Home() {
         Available Test Series
       </h1>
 
-      {/* GRID FIX - prevents stretch */}
-      <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 items-start">
-        {series?.map((item) => (
-          <TestSeriesCard key={item._id} series={item} />
-        ))}
-      </div>
+      {loading ? (
+                  <Loader />
+      ) : (
+        <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 items-start">
+          {series?.map((item) => (
+            <TestSeriesCard key={item._id} series={item} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

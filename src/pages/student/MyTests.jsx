@@ -45,7 +45,7 @@ export default function MyTests() {
               <BookOpen size={14} />
               <span>Enrolled Content</span>
             </div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight">
+            <h1 className="my-3 text-3xl font-black text-slate-900 tracking-tight">
               My Learning <span className="text-blue-600">Library</span>
             </h1>
           </div>
@@ -88,7 +88,7 @@ export default function MyTests() {
                   <h2 className="text-2xl font-black text-slate-800 tracking-tight">
                     {seriesItem.testSeries.title}
                   </h2>
-                  <span className="bg-white border border-slate-200 text-slate-400 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest shadow-sm">
+                  <span className="bg-white border border-slate-200 text-slate-400 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest shadow-sm text-center">
                     {seriesItem.tests.length} Modules
                   </span>
                 </div>

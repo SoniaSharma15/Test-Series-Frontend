@@ -357,6 +357,55 @@ function QuestionForm(
               <div className="text-sm font-black text-slate-900">
                 Sub Question #{index + 1}
               </div>
+              {/* Marks + Negative (Sub Question) */}
+<div className="grid sm:grid-cols-3 gap-3">
+  <div className="space-y-2">
+    <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">
+      Marks
+    </div>
+    <input
+      type="number"
+      value={q.marks ?? 1}
+      onChange={(e) =>
+        updatePassageQuestion(index, "marks", Number(e.target.value))
+      }
+      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-300"
+    />
+  </div>
+
+  <div className="space-y-2">
+    <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">
+      Negative Marks
+    </div>
+    <input
+      type="number"
+      step="0.01"
+      value={q.negativeMarks ?? 0}
+      onChange={(e) =>
+        updatePassageQuestion(index, "negativeMarks", Number(e.target.value))
+      }
+      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-300"
+    />
+  </div>
+
+  <div className="space-y-2">
+    <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">
+      Type
+    </div>
+    <select
+      value={q.type}
+      onChange={(e) => updatePassageQuestion(index, "type", e.target.value)}
+      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-300"
+    >
+      {["MCQ", "MSQ"].map((t) => (
+        <option key={t} value={t}>
+          {t}
+        </option>
+      ))}
+    </select>
+  </div>
+</div>
+
               <button
                 type="button"
                 onClick={() => removePassageQuestion(index)}

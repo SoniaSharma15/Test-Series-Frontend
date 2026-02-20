@@ -96,8 +96,8 @@ const emptyNormalForm = () => ({
 
   correctAnswers: [],
 
-  marks: 1,
-  negativeMarks: 0,
+  marks: 2,
+  negativeMarks: 0.33,
 
   explanation: {
     english: "",
@@ -128,8 +128,8 @@ const emptyChildQuestion = () => ({
 
   correctAnswers: [],
 
-  marks: 1,
-  negativeMarks: 0,
+  marks: 2,
+  negativeMarks: 0.33,
 
   explanation: {
     english: "",

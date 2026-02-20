@@ -85,7 +85,7 @@ export default function StudentSidebar() {
         {/* Navigation Section */}
         <nav className="flex-1 px-6 space-y-2 overflow-y-auto custom-scrollbar pt-2">
           <p className="text-[10px] uppercase tracking-[0.3em] text-slate-400 font-black px-4 mb-6">
-            Protocol Menu
+            Menu
           </p>
           
           {menuItems.map((item) => (

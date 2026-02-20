@@ -255,12 +255,8 @@ const [showWarning, setShowWarning] = useState(false);
 
   const startTimer = () => {
     clearInterval(timerRef.current);
-
     timerRef.current = setInterval(() => {
-      const remaining = Math.floor(
-        (examEndRef.current - Date.now()) / 1000
-      );
-
+      const remaining = Math.floor((examEndRef.current - Date.now()) / 1000);
       if (remaining <= 0) {
         clearInterval(timerRef.current);
         setTimeLeft(0);

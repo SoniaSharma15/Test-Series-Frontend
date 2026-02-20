@@ -14,6 +14,7 @@ import {
   ClipboardList,
   Calendar,
 } from "lucide-react";
+import RevenueChart from "../../components/admin/RevenueChart";
 
 function safeMoney(n) {
   return Number(n || 0).toLocaleString("en-IN");
@@ -138,10 +139,15 @@ export default function AdminDashboard() {
               tone="slate"
             />
           </div>
-
+ <RevenueChart
+  revenue={data?.totalRevenue}
+  dailyRevenue={data?.dailyRevenue}
+/>
           {/* Main grid */}
           <div className="grid grid-cols-12 gap-6">
             {/* Performance chart */}
+          
+
             <div className="col-span-12 lg:col-span-7 bg-white rounded-[1.5rem] p-6 border border-slate-200 shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <div>
@@ -228,7 +234,8 @@ export default function AdminDashboard() {
               )}
             </div>
           </div>
-
+        
+ 
           {/* Footer hint */}
           <div className="text-xs font-semibold text-slate-400">
             Showing last 5 attempts from backend.

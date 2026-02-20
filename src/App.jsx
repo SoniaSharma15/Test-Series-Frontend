@@ -34,9 +34,9 @@ import SeriesDetails from "./pages/student/SeriesDetails";
 const ProtectedRoute = ({ children, role }) => {
   const { user } = useContext(AuthContext);
 
-  if (!user) return <Navigate to="/login" />;
+  if (!user) return <Navigate to="/" />;
 
-  if (role && user.role !== role) return <Navigate to="/login" />;
+  if (role && user.role !== role) return <Navigate to="/" />;
 
   return children;
 };
@@ -46,19 +46,11 @@ function App() {
     <>
       <Routes>
         {/* Public Routes */}
-        <Route
-        path="/"
-        element={
-          <>
-            <Navbar />
-            <Home />
-          </>
-        }
-      />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password/:token" element={<ResetPassword />} />
+        <Route path="/" element={<><Navbar /><Home /></>} />
+        <Route path="/login" element={<><Navbar /><Login /></>} />
+        <Route path="/register" element={<><Navbar /><Register /></>} />
+        <Route path="/forgot-password" element={<><Navbar /><ForgotPassword /></>} />
+        <Route path="/reset-password/:token" element={<><Navbar /><ResetPassword /></>} />
 
         {/* Admin Route */}
         <Route

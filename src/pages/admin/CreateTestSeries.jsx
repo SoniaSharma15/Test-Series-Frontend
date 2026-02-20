@@ -86,28 +86,28 @@ export default function CreateTestSeries() {
   };
 
   /* ================= AUTO PRICE CALCULATION ================= */
-  useEffect(() => {
-    const mrp = Number(form.originalPrice);
-    let discount = Number(form.discount);
+useEffect(() => {
+  const mrp = Number(form.originalPrice);
+  let discount = Number(form.discount);
 
-    if (discount > 100) discount = 100;
-    if (discount < 0) discount = 0;
+  if (discount > 100) discount = 100;
+  if (discount < 0) discount = 0;
 
-    if (!isNaN(mrp) && mrp > 0) {
-      const sellingPrice = mrp - (mrp * discount) / 100;
+  if (!isNaN(mrp) && mrp > 0) {
+    const sellingPrice = mrp - (mrp * discount) / 100;
 
-      setForm((prev) => ({
-        ...prev,
-        discount,
-        price: sellingPrice.toFixed(2),
-      }));
-    } else {
-      setForm((prev) => ({
-        ...prev,
-        price: "",
-      }));
-    }
-  }, [form.originalPrice, form.discount]);
+    setForm((prev) => ({
+      ...prev,
+      discount,
+      price: Math.round(sellingPrice), // ✅ Rounded
+    }));
+  } else {
+    setForm((prev) => ({
+      ...prev,
+      price: "",
+    }));
+  }
+}, [form.originalPrice, form.discount]);
 
   const handleChange = (key) => (e) => setForm((p) => ({ ...p, [key]: e.target.value }));
 

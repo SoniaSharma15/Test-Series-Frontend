@@ -39,7 +39,7 @@ export default function Register() {
       newErrors.name = "Full identity required";
 
     if (!form.email)
-      newErrors.email = "Uplink ID required";
+      newErrors.email = "Email ID required";
     else if (!/\S+@\S+\.\S+/.test(form.email))
       newErrors.email = "Invalid protocol";
 
@@ -49,7 +49,7 @@ export default function Register() {
       newErrors.mobile = "Invalid 10-digit mobile";
 
     if (!form.password)
-      newErrors.password = "Access Key required";
+      newErrors.password = "Password required";
     else if (form.password.length < 6)
       newErrors.password = "Min 6 characters required";
 
@@ -66,42 +66,54 @@ const handleSubmit = async (e) => {
 
   const valErrors = validate();
   if (Object.keys(valErrors).length > 0) {
-    setErrors(valErrors);
-    toast.error("Please correct the form details ❌");
-    return;
-  }
+  setErrors(valErrors);
+
+  // Show first validation error
+  const firstError = Object.values(valErrors)[0];
+  toast.error(firstError);
+
+  return;
+}
 
   try {
-    setLoading(true);
+  setLoading(true);
 
-    const registerPromise = axios.post("/auth/register", {
-      name: form.name.trim(),
-      email: form.email.trim(),
-      mobile: form.mobile.trim(),
-      password: form.password
-    });
+  const registerPromise = axios.post("/auth/register", {
+    name: form.name.trim(),
+    email: form.email.trim(),
+    mobile: form.mobile.trim(),
+    password: form.password
+  });
 
-    toast.promise(registerPromise, {
+  toast.promise(
+    registerPromise,
+    {
       loading: "Creating Account...",
-      success: "Registration Successful 🎉",
-      error: "Registration Failed ❌"
-    });
+      success: (res) =>
+        res?.data?.message || "Registration Successful 🎉",
+      error: (err) =>
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        "Registration Failed ❌"
+    }
+  );
 
-    const res = await registerPromise;
+  const res = await registerPromise;
 
-    login(res.data);
+  login(res.data);
 
-    const role = res.data?.user?.role;
-    navigate(role ? `/${role}/dashboard` : "/");
+  const role = res.data?.user?.role;
+  navigate(role ? `/${role}/dashboard` : "/");
 
-  } catch (err) {
-    const message =
-      err.response?.data?.message || "Node Registration Failed";
+} catch (err) {
+  const message =
+    err.response?.data?.message ||
+    err.response?.data?.error ||
+    err.message ||
+    "Node Registration Failed";
 
-    setServerError(message);
-    toast.error(message);
-
-  } finally {
+  setServerError(message);
+} finally {
     setLoading(false);
   }
 };
@@ -132,13 +144,6 @@ const handleSubmit = async (e) => {
         </div>
 
         <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-[0_20px_50px_rgba(0,0,0,0.05)] p-8 md:p-10 relative overflow-hidden">
-
-          {serverError && (
-            <div className="bg-rose-50 border border-rose-100 text-rose-600 p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-3 mb-6">
-              <div className="w-1 h-1 rounded-full bg-rose-600" />
-              {serverError}
-            </div>
-          )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
 

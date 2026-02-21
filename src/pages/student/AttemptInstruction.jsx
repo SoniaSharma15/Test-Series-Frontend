@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "../../services/axiosInstance";
 import StudentSidebar from "../../components/student/StudentSidebar";
+import toast from "react-hot-toast";
 
 export default function AttemptInstruction() {
   const { testId } = useParams();
@@ -12,6 +13,9 @@ export default function AttemptInstruction() {
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(null);
   const [error, setError] = useState("");
+  const devtoolsOpenRef = useRef(false);
+  const integrityIntervalRef = useRef(null);
+  const toastShownRef = useRef(false);
 
   useEffect(() => {
     fetchTest();
@@ -19,27 +23,130 @@ export default function AttemptInstruction() {
     window.onpopstate = () => {
       window.history.pushState(null, "", window.location.href);
     };
-    return () => { window.onpopstate = null; };
+    return () => {
+      window.onpopstate = null;
+      stopIntegrityMonitor();
+    };
   }, []);
+
+  useEffect(() => {
+    if (!error) {
+      toastShownRef.current = false;
+    }
+  }, [error]);
 
   const fetchTest = async () => {
     try {
       const res = await axios.get(`/attempts/public/${testId}`);
-      setTest(res.data);
+
+      if (res.data?.success && res.data?.data) {
+        setTest(res.data.data);
+      } else {
+        setTest(null);
+      }
+
     } catch (err) {
-      setError("Unable to load test details.");
+      const message = err.response?.data?.message || "Unable to load test details.";
+      setError(message);
+      toast.error(message);
+      setTest(null);
+    }
+  };
+
+  const detectDevTools = () => {
+    const threshold = 150;
+
+    if (
+      window.outerWidth - window.innerWidth > threshold ||
+      window.outerHeight - window.innerHeight > threshold
+    ) {
+      return true;
+    }
+
+    const start = performance.now();
+    debugger;
+    const end = performance.now();
+
+    return end - start > 100;
+  };
+
+  const startIntegrityMonitor = () => {
+    integrityIntervalRef.current = setInterval(() => {
+      if (document.hidden) {
+        const message = "Tab switching detected. Please stay on this page.";
+        setError(message);
+
+        if (!toastShownRef.current) {
+          toast.error(message);
+          toastShownRef.current = true;
+        }
+
+        stopIntegrityMonitor();
+        return;
+      }
+
+      if (detectDevTools()) {
+        const message = "Developer tools must be closed before starting exam.";
+        setError(message);
+
+        if (!toastShownRef.current) {
+          toast.error(message);
+          toastShownRef.current = true;
+        }
+
+        stopIntegrityMonitor();
+        return;
+      }
+    }, 1000);
+  };
+
+  const stopIntegrityMonitor = () => {
+    if (integrityIntervalRef.current) {
+      clearInterval(integrityIntervalRef.current);
     }
   };
 
   const handleStart = async () => {
     if (!agree) return;
+
+    // 🔴 Block if DevTools open
+    if (detectDevTools()) {
+      const message = "Close Developer Tools to start the exam.";
+      setError(message);
+      toast.error(message);
+      return;
+    }
+
+    // 🔴 Block if tab not active
+    if (document.hidden) {
+      const message = "Stay on this tab to start the exam.";
+      setError(message);
+      toast.error(message);
+      return;
+    }
+
     try {
+      // 🟢 Force fullscreen first
       if (!document.fullscreenElement) {
         await document.documentElement.requestFullscreen();
       }
+
+      // 🔴 If fullscreen still not active → block
+      if (!document.fullscreenElement) {
+        const message = "Fullscreen is mandatory to start exam.";
+        setError(message);
+        toast.error(message); return;
+      }
+
+      // 🟢 Start integrity monitor during countdown
+      startIntegrityMonitor();
+
       setCountdown(5);
+
     } catch (err) {
-      setError("Please allow fullscreen mode to start exam.");
+      const message = "Fullscreen permission is required.";
+      setError(message);
+      toast.error(message);
     }
   };
 
@@ -57,11 +164,17 @@ export default function AttemptInstruction() {
 
   const launchExam = async () => {
     try {
+      stopIntegrityMonitor();
+
       setLoading(true);
       const res = await axios.post("/attempts/start", { testId });
+
       navigate(`/student/exam/${res.data.attemptId}`);
+
     } catch (err) {
-      setError("Unable to start attempt.");
+      const message = "Unable to start attempt.";
+      setError(message);
+      toast.error(message);
       setLoading(false);
       setCountdown(null);
     }
@@ -183,11 +296,10 @@ export default function AttemptInstruction() {
               <button
                 disabled={!agree || loading || countdown !== null}
                 onClick={handleStart}
-                className={`w-full py-3.5 rounded-xl font-black uppercase tracking-[0.2em] text-[10px] transition-all active:scale-95 ${
-                  agree
-                    ? "bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-200"
-                    : "bg-slate-200 text-slate-400 cursor-not-allowed"
-                }`}
+                className={`w-full py-3.5 rounded-xl font-black uppercase tracking-[0.2em] text-[10px] transition-all active:scale-95 ${agree
+                  ? "bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-200"
+                  : "bg-slate-200 text-slate-400 cursor-not-allowed"
+                  }`}
               >
                 {loading ? "Establishing Node..." : "Start Secure Exam"}
               </button>

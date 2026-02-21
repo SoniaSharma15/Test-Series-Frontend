@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import axios from "../../services/axiosInstance";
 import { useNavigate } from "react-router-dom";
-import { 
-  Trophy, 
-  ChevronRight, 
-  CheckCircle2, 
-  XCircle, 
+import {
+  Trophy,
+  ChevronRight,
+  CheckCircle2,
+  XCircle,
   Target,
   Search
 } from "lucide-react";
@@ -23,18 +23,21 @@ export default function ResultsPage() {
 
   const fetchResults = async () => {
     try {
-      setLoading(false);
+      setLoading(true);
+
       const res = await axios.get("/results/my-results");
-      setAttempts(res.data);
+
+      setAttempts(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Error fetching results:", err);
+      setAttempts([]);
     } finally {
       setLoading(false);
     }
   };
 
   if (loading) return (
-  <Loader/>
+    <Loader />
   );
 
   return (
@@ -43,7 +46,7 @@ export default function ResultsPage() {
 
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-[1100px] mx-auto p-8 space-y-8">
-          
+
           {/* HEADER SECTION */}
           <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
@@ -54,7 +57,7 @@ export default function ResultsPage() {
                 Track your progress & analysis
               </p>
             </div>
-            
+
             <div className="bg-white border border-slate-200 px-4 py-2 rounded-2xl flex items-center gap-3 shadow-sm">
               <Trophy className="text-amber-500" size={20} />
               <span className="text-sm font-black text-slate-700">
@@ -91,7 +94,7 @@ function ResultCard({ attempt, navigate }) {
   return (
     <div className="group bg-white p-6 rounded-[2rem] border border-slate-200 hover:border-blue-600 hover:shadow-xl hover:shadow-blue-900/5 transition-all cursor-default">
       <div className="flex flex-col lg:flex-row justify-between gap-6">
-        
+
         {/* Left Side: Test Info */}
         <div className="space-y-2 flex-1">
           <div className="flex items-center gap-2">
@@ -100,14 +103,16 @@ function ResultCard({ attempt, navigate }) {
             </span>
             <span className="text-slate-300">•</span>
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-              {new Date(attempt.createdAt).toLocaleDateString('en-GB')}
+              {attempt.submittedAt
+                ? new Date(attempt.submittedAt).toLocaleDateString("en-GB")
+                : "N/A"}
             </span>
           </div>
-          
+
           <h3 className="text-xl font-black text-slate-900 group-hover:text-blue-600 transition-colors">
             {attempt.testId?.name}
           </h3>
-          
+
           {/* Stats Bar */}
           <div className="flex flex-wrap gap-6 pt-2">
             <div className="flex items-center gap-2">

@@ -48,63 +48,118 @@ export default function TestSeriesDetails() {
       setLoading(false);
     }
   };
+
   const handleEnroll = async () => {
-    if (!user) {
-      toast("Please login to continue", { icon: "🔐" });
-      navigate("/login");
+  if (!user) {
+    toast.error("Please login to continue 🔐");
+    navigate("/login");
+    return;
+  }
+
+  if (series?.isEnrolled) {
+    toast.success("You are already enrolled ✅");
+    navigate("/student/my-tests");
+    return;
+  }
+
+  if (processing) return;
+
+  let loadingToast;
+
+  try {
+    setProcessing(true);
+
+    if (!window.Razorpay) {
+      toast.error("Payment gateway not loaded. Please refresh.");
       return;
     }
 
-    if (series.isEnrolled) {
-      toast.success("You are already enrolled");
-      navigate("/student/my-tests");
-      return;
-    }
+    loadingToast = toast.loading("Initializing secure payment...");
 
-    try {
-      setProcessing(true);
+    const orderRes = await axios.post("/payment/create-order", {
+      testSeriesId: series._id,
+    });
 
-      const orderRes = await axios.post("/payment/create-order", {
-        testSeriesId: series._id,
-      });
+    toast.dismiss(loadingToast);
 
-      const options = {
-        key: orderRes.data.key,
-        amount: orderRes.data.amount,
-        order_id: orderRes.data.orderId,
-        name: "Brilliant Bihar Test Series",
-        description: "Payment for Test Series",
+    // Safe destructuring for both formats
+    const { key, amount, orderId } =
+      orderRes.data?.data || orderRes.data;
 
-        handler: async function (response) {
-          try {
-            await axios.post("/payment/verify", {
-              ...response,
-              testSeriesId: series._id,
-            });
+    const options = {
+      key,
+      amount,
+      order_id: orderId,
+      name: "Brilliant Bihar Test Series",
+      description: series.title,
 
-            toast.success("Payment successful 🎉");
-            navigate("/student/my-tests");
-          } catch (err) {
-            toast.error("Payment verification failed");
-          }
-        },
+      handler: async function (response) {
+        let verifyToast;
 
-        modal: {
-          ondismiss: function () {
-            toast("Payment cancelled", { icon: "⚠️" });
-          },
-        },
-      };
+        try {
+          verifyToast = toast.loading("Verifying payment securely...");
 
-      const rzp = new window.Razorpay(options);
-      rzp.open();
-    } catch (error) {
-      console.error(error);
-      toast.error("Enrollment failed. Please try again.");
-    } finally {
-      setProcessing(false);
-    }
-  };
+          const verifyRes = await axios.post("/payment/verify", {
+            ...response,
+            testSeriesId: series._id,
+          });
+
+          toast.dismiss(verifyToast);
+
+          toast.success(
+            verifyRes.data?.message || "Enrollment Successful 🎉"
+          );
+
+          navigate("/student/my-tests");
+
+        } catch (err) {
+          toast.dismiss(verifyToast);
+
+          const message =
+            err.response?.data?.message ||
+            "Payment verification failed ❌";
+
+          toast.error(message);
+        }
+      },
+
+      modal: {
+        ondismiss: function () {
+          toast("Payment cancelled", { icon: "⚠️" });
+        }
+      },
+
+      theme: {
+        color: "#2563eb"
+      }
+    };
+
+    const rzp = new window.Razorpay(options);
+
+    rzp.on("payment.failed", function (response) {
+      const message =
+        response.error?.description ||
+        "Payment failed ❌";
+
+      toast.error(message);
+    });
+
+    rzp.open();
+
+  } catch (error) {
+    toast.dismiss(loadingToast);
+
+    const message =
+      error.response?.data?.message ||
+      error.response?.data?.error ||
+      "Enrollment failed. Please try again ❌";
+
+    toast.error(message);
+
+  } finally {
+    setProcessing(false);
+  }
+};
 
   if (loading) return (
    <Loader/>

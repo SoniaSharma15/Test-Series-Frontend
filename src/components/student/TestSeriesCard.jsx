@@ -11,76 +11,119 @@ import {
 export default function TestSeriesCard({ series }) {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const [processing, setProcessing] = useState(false);
 
-const handleEnroll = async () => {
-  if (!user) {
-    toast("Please login to continue 🔐");
-    navigate("/login");
-    return;
-  }
+  const handleEnroll = async () => {
+    if (!user) {
+      toast.error("Please login to continue 🔐");
+      navigate("/login");
+      return;
+    }
 
-  if (series.isEnrolled) {
-    toast.success("You are already enrolled ✅");
-    return;
-  }
+    if (series.isEnrolled) {
+      toast.success("You are already enrolled ✅");
+      return;
+    }
 
-  let loadingToast;
+    if (processing) return; // prevent double click
 
-  try {
-    loadingToast = toast.loading("Creating payment session...");
+    let loadingToast;
 
-    const orderRes = await axios.post("/payment/create-order", {
-      testSeriesId: series._id,
-    });
+    try {
+      setProcessing(true);
 
-    toast.dismiss(loadingToast);
+      if (!window.Razorpay) {
+        toast.error("Payment gateway not loaded. Please refresh.");
+        return;
+      }
 
-    const options = {
-      key: orderRes.data.key,
-      amount: orderRes.data.amount,
-      order_id: orderRes.data.orderId,
-      name: "Brilliant Bihar Test Series",
-      description: "Payment for Test Series",
+      loadingToast = toast.loading("Creating secure payment session...");
 
-      handler: async function (response) {
-        let verifyToast;
-        try {
-          verifyToast = toast.loading("Verifying payment...");
+      const orderRes = await axios.post("/payment/create-order", {
+        testSeriesId: series._id,
+      });
 
-          await axios.post("/payment/verify", {
-            ...response,
-            testSeriesId: series._id,
-          });
+      toast.dismiss(loadingToast);
 
-          toast.dismiss(verifyToast);
-          toast.success("Enrollment Successful 🎉");
+      const { key, amount, orderId } = orderRes.data?.data || orderRes.data;
 
-          navigate("/student/my-tests");
+      const options = {
+        key,
+        amount,
+        order_id: orderId,
+        name: "Brilliant Bihar Test Series",
+        description: series.title,
 
-        } catch (err) {
-          toast.dismiss(verifyToast);
-          toast.error("Payment verification failed ❌");
+        handler: async function (response) {
+          let verifyToast;
+          try {
+            verifyToast = toast.loading("Verifying payment securely...");
+
+            const verifyRes = await axios.post("/payment/verify", {
+              ...response,
+              testSeriesId: series._id,
+            });
+
+            toast.dismiss(verifyToast);
+
+            toast.success(
+              verifyRes.data?.message || "Enrollment Successful 🎉"
+            );
+
+            navigate("/student/my-tests");
+
+          } catch (err) {
+            toast.dismiss(verifyToast);
+
+            const message =
+              err.response?.data?.message ||
+              "Payment verification failed ❌";
+
+            toast.error(message);
+          }
+        },
+
+        modal: {
+          ondismiss: function () {
+            toast("Payment cancelled.");
+          }
+        },
+
+        theme: {
+          color: "#2563eb"
         }
-      },
-    };
+      };
 
-    const rzp = new window.Razorpay(options);
+      const rzp = new window.Razorpay(options);
 
-    rzp.on("payment.failed", function () {
-      toast.error("Payment failed ❌");
-    });
+      rzp.on("payment.failed", function (response) {
+        const message =
+          response.error?.description ||
+          "Payment failed ❌";
 
-    rzp.open();
+        toast.error(message);
+      });
 
-  } catch (error) {
-    toast.dismiss(loadingToast);
-    toast.error("Enrollment failed. Please try again ❌");
-  }
-};
+      rzp.open();
+
+    } catch (error) {
+      toast.dismiss(loadingToast);
+
+      const message =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        "Enrollment failed. Please try again ❌";
+
+      toast.error(message);
+
+    } finally {
+      setProcessing(false);
+    }
+  };
 
   return (
     <div className="w-full max-w-[345px] rounded-[2.5rem] bg-white border border-slate-200 hover:border-blue-500 hover:shadow-[0_30px_60px_-15px_rgba(37,99,235,0.12)] transition-all duration-500 flex flex-col group mx-auto overflow-hidden">
-      
+
       {/* Banner Area */}
       <div className="relative h-44 overflow-hidden shrink-0">
         {series.thumbnail ? (
@@ -131,22 +174,22 @@ const handleEnroll = async () => {
 
         {/* Technical Specs Well */}
         <div className="flex items-center justify-between px-4 py-4 bg-slate-50 rounded-2xl border border-slate-100 mb-6">
-           <div className="flex flex-col items-center gap-1">
-              <Clock size={14} className="text-blue-600" />
-              <span className="text-[8px] font-black text-slate-500 uppercase tracking-tighter">{series.duration} Days</span>
-           </div>
-           <div className="w-px h-6 bg-slate-200" />
-           <div className="flex flex-col items-center gap-1">
-              <Globe size={14} className="text-blue-600" />
-              <span className="text-[8px] font-black text-slate-500 uppercase tracking-tighter truncate max-w-[50px]">{series.language}</span>
-           </div>
-           <div className="w-px h-6 bg-slate-200" />
-           <div className="flex flex-col items-center gap-1">
-              <Calendar size={14} className="text-blue-600" />
-              <span className="text-[8px] font-black text-slate-500 uppercase tracking-tighter">
-                 {series.startDate ? new Date(series.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Ready'}
-              </span>
-           </div>
+          <div className="flex flex-col items-center gap-1">
+            <Clock size={14} className="text-blue-600" />
+            <span className="text-[8px] font-black text-slate-500 uppercase tracking-tighter">{series.duration} Days</span>
+          </div>
+          <div className="w-px h-6 bg-slate-200" />
+          <div className="flex flex-col items-center gap-1">
+            <Globe size={14} className="text-blue-600" />
+            <span className="text-[8px] font-black text-slate-500 uppercase tracking-tighter truncate max-w-[50px]">{series.language}</span>
+          </div>
+          <div className="w-px h-6 bg-slate-200" />
+          <div className="flex flex-col items-center gap-1">
+            <Calendar size={14} className="text-blue-600" />
+            <span className="text-[8px] font-black text-slate-500 uppercase tracking-tighter">
+              {series.startDate ? new Date(series.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Ready'}
+            </span>
+          </div>
         </div>
 
         {/* Pricing Hub */}

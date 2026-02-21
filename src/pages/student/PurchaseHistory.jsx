@@ -24,16 +24,34 @@ export default function PurchaseHistory() {
   }, []);
 
   const fetchHistory = async () => {
-    try {
-      setLoading(true);
-      const res = await axios.get("/payment/history");
-      setData(res.data || []);
-    } catch (err) {
-      setError("Unable to sync transaction records.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
+    setLoading(true);
+
+    const res = await axios.get("/payment/history");
+
+    const payments =
+      Array.isArray(res.data)
+        ? res.data
+        : Array.isArray(res.data?.payments)
+        ? res.data.payments
+        : Array.isArray(res.data?.data)
+        ? res.data.data
+        : [];
+
+    setData(payments);
+
+  } catch (err) {
+    const message =
+      err.response?.data?.message ||
+      "Unable to sync transaction records.";
+
+    setError(message);
+    toast.error(message);
+  } finally {
+    setLoading(false);
+  }
+};
+
   if (loading) {
     return <Loader></Loader>
   }

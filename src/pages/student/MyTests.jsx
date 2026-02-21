@@ -25,7 +25,16 @@ export default function MyTests() {
     try {
       setLoading(true);
       const res = await axios.get("/enrollments/my");
-      setData(res.data || []);
+      const enrollments =
+        Array.isArray(res.data)
+          ? res.data
+          : Array.isArray(res.data?.enrollments)
+            ? res.data.enrollments
+            : Array.isArray(res.data?.data)
+              ? res.data.data
+              : [];
+
+      setData(enrollments);
     } catch (err) {
       setError("Failed to load your tests");
     } finally {
@@ -33,8 +42,8 @@ export default function MyTests() {
     }
   };
 
-  if(loading){
-    return <Loader/>
+  if (loading) {
+    return <Loader />
   }
 
   return (
@@ -54,7 +63,7 @@ export default function MyTests() {
               My Learning <span className="text-blue-600">Library</span>
             </h1>
           </div>
-          
+
 
           {/* Error Message */}
           {error && (

@@ -15,57 +15,64 @@ export default function Login() {
 
   const validate = () => {
     let newErrors = {};
-    if (!form.email) newErrors.email = "Uplink ID required";
+    if (!form.email) newErrors.email = "Email ID required";
     else if (!/\S+@\S+\.\S+/.test(form.email)) newErrors.email = "Invalid protocol";
-    if (!form.password) newErrors.password = "Access Key required";
+    if (!form.password) newErrors.password = "Password required";
     return newErrors;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    const valErrors = validate();
-    if (Object.keys(valErrors).length > 0) {
-      setErrors(valErrors);
-      toast.error("Please fill all required fields correctly ❌");
-      return;
-    }
+  const valErrors = validate();
 
-    setErrors({});
+  if (Object.keys(valErrors).length > 0) {
+    setErrors(valErrors);
 
-    let toastId;
+    // Show first validation error in toast
+    const firstError = Object.values(valErrors)[0];
+    toast.error(firstError);
 
-    try {
-      setLoading(true);
+    return;
+  }
 
-      toastId = toast.loading("Authenticating...");
+  setErrors({});
+  let toastId;
 
-      const res = await axios.post("/auth/login", {
-        email: form.email.trim(),
-        password: form.password,
-      });
+  try {
+    setLoading(true);
 
-      toast.dismiss(toastId);
-      toast.success("Login Successful 🚀");
+    toastId = toast.loading("Authenticating...");
 
-      login(res.data);
+    const res = await axios.post("/auth/login", {
+      email: form.email.trim(),
+      password: form.password,
+    });
 
-      const role = res.data?.user?.role;
-      navigate(role ? `/${role}/dashboard` : "/");
+    toast.dismiss(toastId);
+    toast.success(res.data?.message || "Login Successful 🚀");
 
-    } catch (err) {
-      toast.dismiss(toastId);
+    login(res.data);
 
-      const message =
-        err.response?.data?.message ||
-        "Authentication Failed: Credentials Mismatch ❌";
+    const role = res.data?.user?.role;
+    navigate(role ? `/${role}/dashboard` : "/");
 
-      toast.error(message);
+  } catch (err) {
+    toast.dismiss(toastId);
 
-    } finally {
-      setLoading(false);
-    }
-  };
+    // Extract exact backend message safely
+    const backendMessage =
+      err.response?.data?.message ||
+      err.response?.data?.error ||
+      err.message ||
+      "Authentication Failed ❌";
+
+    toast.error(backendMessage);
+
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC] px-4 font-sans relative overflow-hidden py-8">
@@ -107,6 +114,7 @@ export default function Login() {
                 <input
                   type="email"
                   value={form.email}
+                  placeholder="rollnumber@brilliant.in"
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                   className={`w-full pl-12 pr-4 py-4 bg-slate-50 border rounded-2xl text-sm font-bold outline-none ${
                     errors.email
@@ -135,6 +143,7 @@ export default function Login() {
                 <input
                   type="password"
                   value={form.password}
+                  placeholder="••••••"
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
                   className={`w-full pl-12 pr-4 py-4 bg-slate-50 border rounded-2xl text-sm font-bold outline-none ${
                     errors.password

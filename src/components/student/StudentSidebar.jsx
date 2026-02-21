@@ -12,7 +12,8 @@ import {
   ChevronRight,
   LogOut,
   User,
-  ShieldCheck
+  ShieldCheck,
+  TrendingUp
 } from "lucide-react";
 
 export default function StudentSidebar() {
@@ -30,7 +31,7 @@ export default function StudentSidebar() {
     { to: "/student/test-series", icon: BookOpen, label: "All Test Series" },
     { to: "/student/my-tests", icon: ClipboardList, label: "My Tests Series" },
     { to: "/student/performance", icon: BarChart2, label: "Performance" },
-    { to: "/student/recent-performance", icon: BarChart2, label: "Recent Performance" },
+    { to: "/student/recent-performance", icon: TrendingUp, label: "Recent Performance" },
     { to: "/student/results", icon: ShoppingBag, label: "Results" },
     { to: "/student/purchase-history", icon: ShoppingBag, label: "Purchase History" },
   ];

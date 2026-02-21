@@ -598,34 +598,34 @@ export default function ExamWindow() {
 
   /* ---------- CLEANUP ---------- */
 
-const cleanup = () => {
-  clearInterval(timerRef.current);
-  clearInterval(heartbeatRef.current);
+  const cleanup = () => {
+    clearInterval(timerRef.current);
+    clearInterval(heartbeatRef.current);
 
-  if (devToolsIntervalRef.current) {
-    clearInterval(devToolsIntervalRef.current);
-  }
+    if (devToolsIntervalRef.current) {
+      clearInterval(devToolsIntervalRef.current);
+    }
 
-  if (fullscreenHandlerRef.current) {
-    document.removeEventListener(
-      "fullscreenchange",
-      fullscreenHandlerRef.current
-    );
-  }
+    if (fullscreenHandlerRef.current) {
+      document.removeEventListener(
+        "fullscreenchange",
+        fullscreenHandlerRef.current
+      );
+    }
 
-  if (visibilityHandlerRef.current) {
-    document.removeEventListener(
-      "visibilitychange",
-      visibilityHandlerRef.current
-    );
-  }
+    if (visibilityHandlerRef.current) {
+      document.removeEventListener(
+        "visibilitychange",
+        visibilityHandlerRef.current
+      );
+    }
 
-  if (securityCleanupRef.current) {
-    securityCleanupRef.current();
-  }
+    if (securityCleanupRef.current) {
+      securityCleanupRef.current();
+    }
 
-  securityInitializedRef.current = false; // 🔥 ADD THIS
-};
+    securityInitializedRef.current = false; // 🔥 ADD THIS
+  };
 
 
 
@@ -847,166 +847,184 @@ const cleanup = () => {
   }
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-[#FDFEFF] font-sans">
-
-      {/* 🔐 WATERMARK */}
-      <div className="fixed inset-0 pointer-events-none flex items-center justify-center text-7xl font-black text-gray-400 opacity-20 rotate-[-30deg] select-none z-40 tracking-widest">
-        {test?.name} • {attemptId}
-      </div>
-
-      {/* ================= HEADER ================= */}
-      <div className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shadow-sm">
-
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="md:hidden p-2 text-slate-500"
-          >
-            ☰
-          </button>
-
-          <h1 className="font-black text-slate-800 text-lg truncate max-w-[300px]">
-            {test?.name}
-          </h1>
-        </div>
-
-        <div className="flex items-center gap-6">
-
-          {/* Language Toggle */}
-          <div className="flex bg-slate-100 p-1 rounded-lg">
-            <button
-              onClick={() => setLanguage("english")}
-              className={`px-4 py-1 text-xs font-bold rounded-md ${language === "english"
-                ? "bg-white text-blue-600 shadow"
-                : "text-slate-500"
-                }`}
-            >
-              EN
-            </button>
-
-            <button
-              onClick={() => setLanguage("hindi")}
-              className={`px-4 py-1 text-xs font-bold rounded-md ${language === "hindi"
-                ? "bg-white text-blue-600 shadow"
-                : "text-slate-500"
-                }`}
-            >
-              HI
-            </button>
-          </div>
-
-          {/* Timer */}
-          <div className="px-6 py-2 bg-slate-900 text-white rounded-lg font-mono font-bold">
-            {formatTime()}
-          </div>
+    <>
+      {/* ❌ MOBILE BLOCK SCREEN */}
+      <div className="md:hidden fixed inset-0 flex items-center justify-center bg-slate-900 text-white z-50">
+        <div className="text-center px-6">
+          <h2 className="text-2xl font-black mb-4">
+            Desktop Required
+          </h2>
+          <p className="text-sm text-slate-300 leading-relaxed">
+            This exam is not available on small screens.
+            <br />
+            Please open this test on a desktop or laptop
+            in full desktop mode to continue.
+          </p>
         </div>
       </div>
 
+      {/* ✅ DESKTOP EXAM WINDOW */}
+      <div className="hidden md:flex fixed inset-0 flex-col bg-[#FDFEFF] font-sans">
 
-      {/* ================= BODY ================= */}
-      <div className="flex flex-1 overflow-hidden">
+        {/* 🔐 WATERMARK */}
+        <div className="fixed inset-0 pointer-events-none flex items-center justify-center text-7xl font-black text-gray-400 opacity-20 rotate-[-30deg] select-none z-40 tracking-widest">
+          {test?.name} • {attemptId}
+        </div>
 
-        {/* ===== LEFT SPLIT PANEL ===== */}
-        {showSplit && currentQuestion && (
-          <div className="w-[45%] hidden md:flex bg-white border-r border-slate-200 flex-col">
+        {/* ================= HEADER ================= */}
+        <div className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shadow-sm">
 
-            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 text-xs font-black uppercase tracking-wider text-blue-600">
-              Reference
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="md:hidden p-2 text-slate-500"
+            >
+              ☰
+            </button>
+
+            <h1 className="font-black text-slate-800 text-lg truncate max-w-[300px]">
+              {test?.name}
+            </h1>
+          </div>
+
+          <div className="flex items-center gap-6">
+
+            {/* Language Toggle */}
+            <div className="flex bg-slate-100 p-1 rounded-lg">
+              <button
+                onClick={() => setLanguage("english")}
+                className={`px-4 py-1 text-xs font-bold rounded-md ${language === "english"
+                  ? "bg-white text-blue-600 shadow"
+                  : "text-slate-500"
+                  }`}
+              >
+                EN
+              </button>
+
+              <button
+                onClick={() => setLanguage("hindi")}
+                className={`px-4 py-1 text-xs font-bold rounded-md ${language === "hindi"
+                  ? "bg-white text-blue-600 shadow"
+                  : "text-slate-500"
+                  }`}
+              >
+                HI
+              </button>
             </div>
 
-            <div className="flex-1 p-6 overflow-y-auto">
+            {/* Timer */}
+            <div className="px-6 py-2 bg-slate-900 text-white rounded-lg font-mono font-bold">
+              {formatTime()}
+            </div>
+          </div>
+        </div>
 
-              {/* Passage */}
-              {currentQuestion.passageText && (
-                <div className="text-slate-700 leading-relaxed whitespace-pre-line">
-                  {getTextByLanguage(currentQuestion.passageText, language)}
-                </div>
-              )}
 
-              {/* Image */}
-              {currentQuestion.image && (
-                <div className="mt-6">
-                  <img
-                    src={currentQuestion.image}
-                    alt="Question"
-                    className="max-w-full rounded-lg shadow"
-                  />
-                </div>
-              )}
+        {/* ================= BODY ================= */}
+        <div className="flex flex-1 overflow-hidden">
+
+          {/* ===== LEFT SPLIT PANEL ===== */}
+          {showSplit && currentQuestion && (
+            <div className="w-[45%] hidden md:flex bg-white border-r border-slate-200 flex-col">
+
+              <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 text-xs font-black uppercase tracking-wider text-blue-600">
+                Reference
+              </div>
+
+              <div className="flex-1 p-6 overflow-y-auto">
+
+                {/* Passage */}
+                {currentQuestion.passageText && (
+                  <div className="text-slate-700 leading-relaxed whitespace-pre-line">
+                    {getTextByLanguage(currentQuestion.passageText, language)}
+                  </div>
+                )}
+
+                {/* Image */}
+                {currentQuestion.image && (
+                  <div className="mt-6">
+                    <img
+                      src={currentQuestion.image}
+                      alt="Question"
+                      className="max-w-full rounded-lg shadow"
+                    />
+                  </div>
+                )}
+
+              </div>
+            </div>
+          )}
+
+
+          {/* ===== QUESTION PANEL ===== */}
+          <QuestionPanel
+            currentQuestion={currentQuestion}
+            currentIndex={currentIndex}
+            totalQuestions={flatQuestions.length}
+            answersMap={answersMap}
+            language={language}
+            selectOption={selectOption}
+            clearAnswer={clearAnswer}
+            goToNext={goToNext}
+            goToPrevious={goToPrevious}
+            handleSubmit={handleSubmit}
+            toggleReview={toggleReview}   // ✅
+            reviewSet={reviewSet}         // ✅
+          />
+
+
+
+
+          {/* ===== PALETTE ===== */}
+
+          <Palette
+            flatQuestions={flatQuestions}
+            currentIndex={currentIndex}
+            setCurrentIndex={setCurrentIndex}
+            answersMap={answersMap}
+            visitedSet={visitedSet}
+            reviewSet={reviewSet}
+            handleSubmit={handleSubmit}
+          />
+
+        </div>
+        {showWarning && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-sm w-full text-center">
+
+              <div className="text-4xl text-rose-500 mb-4 font-bold">!</div>
+
+              <h2 className="text-xl font-black text-slate-800 mb-3">
+                Rule Violation Detected
+              </h2>
+
+              <p className="text-sm text-slate-600 mb-6">
+                Switching tabs or exiting fullscreen is not allowed.
+                <br />
+                <span className="font-bold text-rose-600">
+                  Violations: {violations} / 5
+                </span>
+              </p>
+
+              <button
+                onClick={async () => {
+                  setShowWarning(false);
+
+                  if (!document.fullscreenElement) {
+                    try {
+                      await document.documentElement.requestFullscreen();
+                    } catch { }
+                  }
+                }}
+                className="w-full py-3 bg-slate-900 text-white rounded-lg font-bold text-xs uppercase tracking-wider"
+              >
+                Return to Exam
+              </button>
 
             </div>
           </div>
         )}
-
-
-        {/* ===== QUESTION PANEL ===== */}
-        <QuestionPanel
-          currentQuestion={currentQuestion}
-          currentIndex={currentIndex}
-          totalQuestions={flatQuestions.length}
-          answersMap={answersMap}
-          language={language}
-          selectOption={selectOption}
-          clearAnswer={clearAnswer}
-          goToNext={goToNext}
-          goToPrevious={goToPrevious}
-          handleSubmit={handleSubmit}
-          toggleReview={toggleReview}   // ✅
-          reviewSet={reviewSet}         // ✅
-        />
-
-
-
-
-        {/* ===== PALETTE ===== */}
-
-        <Palette
-          flatQuestions={flatQuestions}
-          currentIndex={currentIndex}
-          setCurrentIndex={setCurrentIndex}
-          answersMap={answersMap}
-          visitedSet={visitedSet}
-          reviewSet={reviewSet}
-          handleSubmit={handleSubmit}
-        />
-
       </div>
-      {showWarning && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-sm w-full text-center">
-
-            <div className="text-4xl text-rose-500 mb-4 font-bold">!</div>
-
-            <h2 className="text-xl font-black text-slate-800 mb-3">
-              Rule Violation Detected
-            </h2>
-
-            <p className="text-sm text-slate-600 mb-6">
-              Switching tabs or exiting fullscreen is not allowed.
-              <br />
-              <span className="font-bold text-rose-600">
-                Violations: {violations} / 5
-              </span>
-            </p>
-
-            <button
-              onClick={async () => {
-                setShowWarning(false);
-
-                if (!document.fullscreenElement) {
-                  try {
-                    await document.documentElement.requestFullscreen();
-                  } catch { }
-                }
-              }}
-              className="w-full py-3 bg-slate-900 text-white rounded-lg font-bold text-xs uppercase tracking-wider"
-            >
-              Return to Exam
-            </button>
-
-          </div>
-        </div>
-      )}
-    </div>
+    </>
   );
 }

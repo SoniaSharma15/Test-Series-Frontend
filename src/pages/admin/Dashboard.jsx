@@ -81,7 +81,7 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <Loader/>
+      <Loader />
     );
   }
 
@@ -138,14 +138,14 @@ export default function AdminDashboard() {
               tone="slate"
             />
           </div>
- <RevenueChart
-  revenue={data?.totalRevenue}
-  dailyRevenue={data?.dailyRevenue}
-/>
+          <RevenueChart
+            revenue={data?.totalRevenue}
+            dailyRevenue={data?.dailyRevenue}
+          />
           {/* Main grid */}
           <div className="grid grid-cols-12 gap-6">
             {/* Performance chart */}
-          
+
 
             <div className="col-span-12 lg:col-span-7 bg-white rounded-[1.5rem] p-6 border border-slate-200 shadow-sm">
               <div className="flex items-center justify-between mb-4">
@@ -191,9 +191,13 @@ export default function AdminDashboard() {
                     const testName =
                       a?.testId?.name || a?.testId?.title || "Test";
                     const when = safeDate(a?.submittedAt ?? a?.createdAt);
-                    const score =
-                      a?.score ?? a?.marks ?? a?.percent ?? a?.accuracy ?? "—";
 
+                    const score =
+                      typeof a?.obtainedMarks === "number" &&
+                        typeof a?.totalMarks === "number" &&
+                        a.totalMarks > 0
+                        ? (a.obtainedMarks / a.totalMarks) * 100
+                        : "—";
                     return (
                       <div
                         key={a?._id || `${studentEmail}-${when}`}
@@ -220,10 +224,10 @@ export default function AdminDashboard() {
                               Score
                             </p>
                             <p className="text-xl font-black text-slate-900">
-                              {Number.isFinite(Number(score))
-                                ? Number(score).toFixed(2)
-                                : score}
-                            </p>
+  {Number.isFinite(Number(score))
+    ? `${Number(score).toFixed(2)}%`
+    : score}
+</p>
                           </div>
                         </div>
                       </div>
@@ -233,8 +237,8 @@ export default function AdminDashboard() {
               )}
             </div>
           </div>
-        
- 
+
+
           {/* Footer hint */}
           <div className="text-xs font-semibold text-slate-400">
             Showing last 5 attempts from backend.

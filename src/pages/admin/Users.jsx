@@ -22,9 +22,15 @@ export default function Users() {
   const [loadingSeries, setLoadingSeries] = useState(false);
   const [activeTab, setActiveTab] = useState("create");
 
-  useEffect(() => {
-    fetchSeries();
-  }, []);
+useEffect(() => {
+  window.scrollTo({
+    top: 0,
+    left: 0,
+    behavior: "smooth",
+  });
+
+  fetchSeries();
+}, []);
 
   const fetchSeries = async () => {
     try {

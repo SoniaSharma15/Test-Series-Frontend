@@ -12,6 +12,9 @@ export default function TestSeriesCard({ series }) {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [processing, setProcessing] = useState(false);
+  const [rating] = useState(() =>
+    (Math.random() * (4.8 - 4.2) + 4.2).toFixed(1)
+  );
 
   const handleEnroll = async () => {
     if (!user) {
@@ -122,8 +125,7 @@ export default function TestSeriesCard({ series }) {
   };
 
   return (
-    <div className="w-full max-w-[345px] rounded-[2.5rem] bg-white border border-slate-200 hover:border-blue-500 hover:shadow-[0_30px_60px_-15px_rgba(37,99,235,0.12)] transition-all duration-500 flex flex-col group mx-auto overflow-hidden">
-
+    <div className="w-full max-w-[345px] h-[580px] rounded-[2.5rem] bg-white border border-slate-200 hover:border-blue-500 hover:shadow-[0_30px_60px_-15px_rgba(37,99,235,0.12)] transition-all duration-500 flex flex-col group mx-auto overflow-hidden">
       {/* Banner Area */}
       <div className="relative h-44 overflow-hidden shrink-0">
         {series.thumbnail ? (
@@ -148,8 +150,7 @@ export default function TestSeriesCard({ series }) {
             </div>
           )}
           <div className="bg-white/90 backdrop-blur-md text-slate-900 text-[10px] font-bold px-2 py-1 rounded-lg border border-white/20 flex items-center gap-1 shadow-sm w-fit">
-            <Star size={10} className="fill-blue-600 text-blue-600" /> 4.8
-          </div>
+            <Star size={10} className="fill-blue-600 text-blue-600" /> {rating}          </div>
         </div>
 
         <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-md text-blue-600 text-[8px] font-black px-3 py-1.5 rounded-full border border-blue-100 uppercase tracking-widest flex items-center gap-1.5 shadow-sm">
@@ -164,10 +165,10 @@ export default function TestSeriesCard({ series }) {
             <ShieldCheck size={14} className="text-blue-600" />
             <span className="text-[9px] font-black text-blue-600 uppercase tracking-[0.2em] italic">Official Curriculum</span>
           </div>
-          <h3 className="text-xl font-black text-slate-900 tracking-tight leading-tight mb-3 group-hover:text-blue-600 transition-colors">
+          <h3 className="text-xl font-black text-slate-900 tracking-tight leading-tight mb-3 group-hover:text-blue-600 transition-colors line-clamp-2 min-h-[3.2rem]">
             {series.title}
           </h3>
-          <p className="text-slate-400 text-xs font-bold leading-relaxed line-clamp-2 opacity-80">
+          <p className="text-slate-400 text-xs font-bold leading-relaxed line-clamp-2 opacity-80 min-h-[2.5rem]">
             {series.description}
           </p>
         </div>

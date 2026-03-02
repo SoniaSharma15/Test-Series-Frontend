@@ -5,7 +5,7 @@ function Loader() {
   return (
     <div className="flex h-screen items-center justify-center bg-[#F8FAFC]">
       <div className="relative flex items-center justify-center">
-        <div className="h-30 w-30 animate-spin rounded-full border-4 border-blue-600/20 border-t-blue-600" />
+        <div className="h-20 w-20 animate-spin rounded-full border-4 border-blue-600/20 border-t-blue-900" />
 
         <img
           src={loaderImg}

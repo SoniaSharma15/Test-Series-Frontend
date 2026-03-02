@@ -2,26 +2,17 @@ import { useEffect, useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "../../services/axiosInstance";
 import { AuthContext } from "../../context/AuthContext";
-import {
-  Layout,
-  Activity,
-  Zap,
-  ArrowUpRight,
-  User,
-  ChevronRight,
-  ShieldCheck,
-  Sparkles,
-  Clock,
-  Target
+import { 
+  Home, BookOpen, FileText, User, Bell, 
+  Search, ExternalLink, ChevronRight, LogOut 
 } from "lucide-react";
-
 import StudentSidebar from "../../components/student/StudentSidebar";
 import Loader from "../../components/common/Loader";
 
-export default function Dashboard() {
+export default function GovDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const { user } = useContext(AuthContext);
+  const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -33,83 +24,183 @@ export default function Dashboard() {
       setLoading(true);
       const res = await axios.get("/student/dashboard");
       setData(res.data);
-    } catch (err) {
-      console.error("Error fetching dashboard:", err);
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { console.error(err); } 
+    finally { setLoading(false); }
   };
 
-  if (loading)
-    return (
-      <Loader/>
-    );
+  if (loading) return <Loader />;
 
   return (
-    <div className="flex min-h-screen bg-[#F8FAFC]">
+    <div className="flex min-h-screen bg-[#f1f5f9]">
       <StudentSidebar />
 
-      <main className="flex-1 min-w-0 h-screen overflow-y-auto custom-scrollbar">
-        <div className="max-w-[1300px] mx-auto p-5 md:p-10 space-y-8 animate-in fade-in duration-700">
-
-          {/* TOP CONSOLE HEADER */}
-          <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-            <div className="flex items-center gap-5">
-              <div className="h-16 w-16 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-xl shadow-blue-200 shrink-0 font-black text-2xl">
-                {user?.name?.charAt(0) || <User size={28} />}
-              </div>
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                   <div className="h-1.5 w-1.5 rounded-full bg-blue-600 animate-pulse" />
-                   <span className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-600">Student Dashboard</span>
-                </div>
-                <h1 className="text-3xl font-black text-slate-900 tracking-tight">
-                  Welcome, {user?.name?.split(" ")[0]} <Sparkles size={24} className="inline text-blue-500 fill-blue-500/10" />
-                </h1>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">ID: {data?.studentId?.substring(0, 8)}</p>
-              </div>
-            </div>
+      <main className="flex-1 overflow-y-auto h-screen">
+        {/* 1. TOP UTILITY BAR (VERY GOV STYLE) */}
+<div className="sticky top-0 z-5 bg-[#355872] text-white px-6 py-6 flex justify-between items-center text-[11px] font-medium">
+  <div className="flex gap-4">
+    <span className="hover:underline cursor-pointer"></span>
+    <span className="hover:underline cursor-pointer"></span>
+  </div>
+  <div className="flex gap-4 items-center">
+    <span>
+      Standard Time: {new Date().toLocaleTimeString()}
+    </span>
+   
+    
+  </div>
+</div>
+        {/* 2. SUB-HEADER / BREADCRUMBS */}
+        <div className="bg-white border-b border-slate-200 px-6 py-4 flex flex-col md:flex-row md:items-center justify-between ">
+          <div>
             
-            <button
-              onClick={() => navigate("/student/my-tests")}
-              className="flex items-center gap-3 px-8 py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-blue-600 transition-all active:scale-95 shadow-2xl shadow-slate-200"
-            >
-              Resume Learning <ArrowUpRight size={16} />
-            </button>
-          </header>
+            <h1 className="text-2xl font-bold text-slate-600  tracking-tight">
+              Welcome, {user?.name}
+            </h1>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <div className="text-right hidden md:block">
+              <p className="text-xs text-slate-400 font-bold">LAST LOGIN</p>
+              <p className="text-xs text-slate-700">{new Date().toLocaleDateString('en-GB')}</p>
+            </div>
+           
+          </div>
+        </div>
 
-          {/* METRICS ROW */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <MetricBox label="Active Batches" value={data?.enrolledSeries?.length || 0} icon={<Layout size={20}/>} />
-            <MetricBox label="Tests Attempted" value={data?.testsTakenCount || 0} icon={<Zap size={20}/>} />
-            <MetricBox label="System Accuracy" value={`${Number(data?.avgAccuracy || 0).toFixed(1)}%`} icon={<Activity size={20}/>} />
+        {/* 3. MAIN CONTENT AREA */}
+        <div className="max-w-[1200px] mx-auto p-6 space-y-6">
+          
+          {/* ANNOUNCEMENT SCROLLER */}
+          <div className="bg-white border-l-4 border-red-600 shadow-sm p-3 flex items-center gap-4">
+            <span className="bg-red-600 text-white px-2 py-0.5 text-[10px] font-bold rounded animate-pulse">LATEST</span>
+            <marquee className="text-sm text-slate-700 font-medium">
+              New UPSC Mock Test Series 2026 is now live. Please check the 'Active Batches' section for enrollment.
+            </marquee>
           </div>
 
-          {/* BATCH SECTION */}
-          <div className="space-y-6">
-            <div className="flex items-center gap-4 px-2">
-               <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Enrolled Batch</h3>
-               <div className="h-px flex-1 bg-slate-200" />
-            </div>
-
-            <div className="grid grid-cols-1 gap-4">
-              {data?.enrolledSeries
-                ?.filter((series) => {
-                  if (!series.expiryDate) return true;
-                  const today = new Date();
-                  const expiry = new Date(series.expiryDate);
-                  return expiry >= today;
-                })
-                .map((series) => (
-                  <BladeCard
-                    key={series._id}
-                    series={series}
-                    navigate={navigate}
-                  />
-                ))}
-            </div>
+          {/* METRIC TILES (FLAT GOV STYLE) */}
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <GovStat label="Enrolled Courses" value={data?.enrolledSeries?.length || 0} color="bg-[#7AAACE]" />
+            <GovStat label="Tests Attempted" value={data?.testsTakenCount || 0} color="bg-[#7AAACE]" />
+            <GovStat label="Success Rate" value={`${Number(data?.avgAccuracy || 0).toFixed(0)}%`} color="bg-[#7AAACE]" />
+            <GovStat label="Global Rank" value="#124" color="bg-[#7AAACE]" />
           </div>
 
+         {/* DATA TABLES (RESPONSIVE) */}
+<div className="bg-white rounded border border-slate-200 shadow-sm overflow-hidden">
+
+  <div className="bg-[#f8fafc] px-4 md:px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+    <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm md:text-base">
+      <BookOpen size={18} className="text-blue-700" />
+      ACTIVE SCHEMES & BATCHES
+    </h3>
+  </div>
+
+  {/* DESKTOP TABLE */}
+  <div className="hidden md:block overflow-x-auto">
+    <table className="w-full text-left border-collapse">
+      <thead>
+        <tr className="bg-slate-50 text-slate-500 text-[11px] uppercase tracking-wider border-b border-slate-200">
+          <th className="px-6 py-3 font-bold">Batch Name</th>
+          <th className="px-6 py-3 font-bold">Progress</th>
+          <th className="px-6 py-3 font-bold">Valid Upto</th>
+          <th className="px-6 py-3 font-bold text-center">Action</th>
+        </tr>
+      </thead>
+
+      <tbody className="divide-y divide-slate-100">
+        {data?.enrolledSeries?.map((series) => (
+          <tr key={series._id} className="hover:bg-blue-50/50 transition-colors">
+
+            <td className="px-6 py-4">
+              <p className="font-bold text-slate-800">{series.title}</p>
+              <p className="text-[10px] text-slate-400">
+                ID: {series._id.substring(0, 8)}
+              </p>
+            </td>
+
+            <td className="px-6 py-4">
+              <div className="w-24 bg-slate-100 h-1.5 rounded-full overflow-hidden mb-1">
+                <div
+                  className="bg-blue-600 h-full"
+                  style={{ width: `${series.progress || 0}%` }}
+                />
+              </div>
+              <span className="text-[10px] font-bold text-slate-500">
+                {series.progress || 0}% Complete
+              </span>
+            </td>
+
+            <td className="px-6 py-4 text-xs font-medium text-slate-600">
+              {series.expiryDate
+                ? new Date(series.expiryDate).toLocaleDateString("en-GB")
+                : "Lifetime"}
+            </td>
+
+            <td className="px-6 py-4 text-center">
+              <button
+                onClick={() =>
+                  navigate(`/student/my-tests?series=${series._id}`)
+                }
+                className="text-blue-700 hover:text-blue-900 font-bold text-xs flex items-center gap-1 justify-center mx-auto uppercase"
+              >
+                Access <ExternalLink size={12} />
+              </button>
+            </td>
+
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  {/* MOBILE CARD VIEW */}
+  <div className="md:hidden p-4 space-y-4">
+    {data?.enrolledSeries?.map((series) => (
+      <div
+        key={series._id}
+        className="border rounded-xl p-4 shadow-sm bg-white"
+      >
+        <p className="font-bold text-slate-800 text-sm">
+          {series.title}
+        </p>
+
+        <p className="text-[10px] text-slate-400 mb-2">
+          ID: {series._id.substring(0, 8)}
+        </p>
+
+        <div className="mb-2">
+          <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+            <div
+              className="bg-blue-600 h-full"
+              style={{ width: `${series.progress || 0}%` }}
+            />
+          </div>
+          <span className="text-[10px] font-bold text-slate-500">
+            {series.progress || 0}% Complete
+          </span>
+        </div>
+
+        <p className="text-xs text-slate-600 mb-3">
+          Valid Upto:{" "}
+          {series.expiryDate
+            ? new Date(series.expiryDate).toLocaleDateString("en-GB")
+            : "Lifetime"}
+        </p>
+
+        <button
+          onClick={() =>
+            navigate(`/student/my-tests?series=${series._id}`)
+          }
+          className="w-full bg-blue-600 text-white py-2 rounded-lg text-[11px] font-bold uppercase"
+        >
+          Access Batch
+        </button>
+      </div>
+    ))}
+  </div>
+
+</div>
         </div>
       </main>
     </div>
@@ -118,128 +209,14 @@ export default function Dashboard() {
 
 /* ================= HELPERS ================= */
 
-function getRemainingDays(expiryDate) {
-  if (!expiryDate) return null;
-  const today = new Date();
-  const expiry = new Date(expiryDate);
-  const diff = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
-  return diff > 0 ? diff : 0;
-}
-
-/* ================= COMPONENTS ================= */
-
-function MetricBox({ label, value, icon }) {
+function GovStat({ label, value, color }) {
   return (
-    <div className="bg-white p-6 rounded-[2rem] border border-slate-200 flex items-center justify-between group hover:border-blue-500 transition-all duration-500">
-      <div>
-        <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest mb-1">{label}</p>
-        <h4 className="text-3xl font-black text-slate-900 tracking-tighter italic">{value}</h4>
+    <div className={`${color} p-5 rounded-sm shadow-sm flex flex-col justify-between h-28 text-white relative overflow-hidden group`}>
+      <p className="text-[10px] font-bold uppercase tracking-widest opacity-80">{label}</p>
+      <h4 className="text-3xl font-bold">{value}</h4>
+      <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform">
+        <FileText size={80} />
       </div>
-      <div className="bg-blue-50 text-blue-600 w-12 h-12 rounded-2xl flex items-center justify-center border border-blue-100 group-hover:bg-blue-600 group-hover:text-white transition-all">
-        {icon}
-      </div>
-    </div>
-  );
-}
-
-function BladeCard({ series, navigate }) {
-  const remainingDays = getRemainingDays(series.expiryDate);
-  const isExpired = remainingDays === 0 && series.expiryDate;
-
-  return (
-    <div
-      onClick={() =>
-        !isExpired &&
-        navigate(`/student/my-tests?series=${series._id}`)
-      }
-      className={`bg-white p-6 px-10 rounded-[2rem] border transition-all cursor-pointer group shadow-sm flex flex-col lg:flex-row gap-8 items-center
-        ${
-          isExpired
-            ? "border-red-200 opacity-60 cursor-not-allowed"
-            : "border-slate-200 hover:border-blue-600"
-        }`}
-    >
-      {/* Identity */}
-      <div className="flex-1 w-full">
-        <div className="flex items-center gap-2 mb-2">
-          <ShieldCheck size={16} className="text-blue-600" />
-          <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">
-            Your Test Series
-          </span>
-        </div>
-
-        <h4 className="text-xl font-black text-slate-900 tracking-tight group-hover:text-blue-600 transition-colors">
-          {series.title}
-        </h4>
-      </div>
-
-      {/* Progress */}
-      <div className="w-full lg:w-56">
-        <div className="flex justify-between items-end mb-3">
-          <span className="text-sm font-bold uppercase text-slate-500 tracking-wide">
-            Mastery
-          </span>
-          <span className="text-base font-black italic text-blue-600">
-            {series.progress || 0}%
-          </span>
-        </div>
-
-        <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden border border-slate-200">
-          <div
-            className="bg-blue-600 h-full rounded-full transition-all duration-1000"
-            style={{ width: `${series.progress || 0}%` }}
-          />
-        </div>
-      </div>
-
-      {/* Expiry & Count */}
-      <div className="flex gap-10 shrink-0 bg-slate-50 px-8 py-4 rounded-2xl border border-slate-100">
-        <div className="text-center">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
-            Tests
-          </p>
-          <p className="text-lg font-black text-slate-800">
-            {series.totalTests || 0}
-          </p>
-        </div>
-
-        <div className="text-center">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
-            Status
-          </p>
-          <p
-            className={`text-lg font-black ${
-              isExpired ? "text-red-500" : "text-emerald-600"
-            }`}
-          >
-            {isExpired ? "Expired" : "Active"}
-          </p>
-        </div>
-
-        <div className="text-center">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
-            Expiry
-          </p>
-          <p
-            className={`text-lg font-black ${
-              remainingDays < 5
-                ? "text-red-500"
-                : "text-emerald-600"
-            }`}
-          >
-            {series.expiryDate
-              ? remainingDays > 0
-                ? `${remainingDays} Days`
-                : "Expired"
-              : "Life"}
-          </p>
-        </div>
-      </div>
-
-      <ChevronRight
-        className="hidden lg:block text-slate-300 group-hover:text-blue-600 group-hover:translate-x-1 transition-all"
-        size={26}
-      />
     </div>
   );
 }

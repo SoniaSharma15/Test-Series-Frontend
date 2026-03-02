@@ -8,7 +8,13 @@ import {
   XCircle,
   AlertCircle,
   History,
-  Receipt
+  Receipt,
+  Home,
+  ChevronRight,
+  FileText,
+  ShieldCheck,
+  IndianRupee,
+  ReceiptIndianRupee
 } from "lucide-react";
 import StudentSidebar from "../../components/student/StudentSidebar";
 import Loader from "../../components/common/Loader";
@@ -24,61 +30,46 @@ export default function PurchaseHistory() {
   }, []);
 
   const fetchHistory = async () => {
-  try {
-    setLoading(true);
+    try {
+      setLoading(true);
+      const res = await axios.get("/payment/history");
+      const payments = Array.isArray(res.data) 
+        ? res.data 
+        : res.data?.payments || res.data?.data || [];
+      setData(payments);
+    } catch (err) {
+      const message = err.response?.data?.message || "Unable to sync transaction records.";
+      setError(message);
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const res = await axios.get("/payment/history");
-
-    const payments =
-      Array.isArray(res.data)
-        ? res.data
-        : Array.isArray(res.data?.payments)
-        ? res.data.payments
-        : Array.isArray(res.data?.data)
-        ? res.data.data
-        : [];
-
-    setData(payments);
-
-  } catch (err) {
-    const message =
-      err.response?.data?.message ||
-      "Unable to sync transaction records.";
-
-    setError(message);
-    toast.error(message);
-  } finally {
-    setLoading(false);
-  }
-};
-
-  if (loading) {
-    return <Loader></Loader>
-  }
   const getStatusConfig = (status) => {
     switch (status?.toLowerCase()) {
       case "success":
         return {
-          style: "bg-emerald-50 text-emerald-600 border-emerald-100",
-          icon: <CheckCircle2 size={12} />,
-          label: "SUCCESS"
+          style: "bg-emerald-600 text-white",
+         
+          label: "SUCCESSFUL"
         };
       case "failed":
         return {
-          style: "bg-red-50 text-red-600 border-red-100",
-          icon: <XCircle size={12} />,
+          style: "bg-red-600 text-white",
+          icon: <XCircle size={10} />,
           label: "FAILED"
         };
       case "pending":
         return {
-          style: "bg-amber-50 text-amber-600 border-amber-100",
-          icon: <Clock size={12} />,
+          style: "bg-amber-500 text-white",
+          icon: <Clock size={10} />,
           label: "PROCESSING"
         };
       default:
         return {
-          style: "bg-slate-50 text-slate-600 border-slate-100",
-          icon: <AlertCircle size={12} />,
+          style: "bg-slate-500 text-white",
+          icon: <AlertCircle size={10} />,
           label: status?.toUpperCase()
         };
     }
@@ -86,172 +77,208 @@ export default function PurchaseHistory() {
 
   const handleDownload = async (paymentId) => {
     try {
-      const response = await axios.get(
-        `/payment/receipt/${paymentId}`,
-        { responseType: "blob" }
-      );
-
-      const url = window.URL.createObjectURL(
-        new Blob([response.data], { type: "application/pdf" })
-      );
-
+      const response = await axios.get(`/payment/receipt/${paymentId}`, { responseType: "blob" });
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: "application/pdf" }));
       const link = document.createElement("a");
       link.href = url;
-      link.download = `receipt-${paymentId}.pdf`;
+      link.download = `Receipt-${paymentId}.pdf`;
       link.click();
-
-      toast.success("Receipt downloaded successfully ✅");
-
+      toast.success("Official receipt downloaded ✅");
     } catch (error) {
-
-      if (error.response?.status === 410) {
-        toast.error("This test series is no longer available.");
-        return;
-      }
-
-      if (error.response?.status === 404) {
-        toast.error("Receipt not found.");
-        return;
-      }
-
-      toast.error("Failed to download receipt.");
-      console.error("Download failed:", error);
+      toast.error("Receipt generation failed.");
     }
   };
 
+  if (loading) return <Loader />;
+
   return (
-    <div className="flex min-h-screen bg-[#F8FAFC]">
+    <div className="flex min-h-screen bg-[#F1F5F9]">
       <StudentSidebar />
 
-      <main className="flex-1 min-w-0 h-screen overflow-y-auto custom-scrollbar font-sans">
-        <div className="max-w-[1200px] mx-auto p-6 md:p-10 space-y-8 animate-in fade-in duration-700">
+      <main className="flex-1 min-w-0 h-screen overflow-y-auto">
+        {/* 1. TOP UTILITY BAR (VERY GOV STYLE) */}
+<div className="sticky top-0 z-5 bg-[#355872] text-white px-6 py-6 flex justify-between items-center text-[11px] font-medium">
+  <div className="flex gap-4">
+    <span className="hover:underline cursor-pointer"></span>
+    <span className="hover:underline cursor-pointer"></span>
+  </div>
+  <div className="flex gap-4 items-center">
+    <span>
+      Standard Time: {new Date().toLocaleTimeString()}
+    </span>
 
-          {/* HEADER CONSOLE */}
-          <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-200 pb-8">
-            <div>
-              <div className="flex items-center gap-2 mb-2 text-blue-600 font-black text-[10px] uppercase tracking-[0.3em]">
-                <History size={14} />
-                <span>Transaction Log</span>
-              </div>
-              <h1 className="text-4xl font-black text-slate-900 tracking-tighter italic">
-                Purchase <span className="text-blue-600">History</span>
-              </h1>
+  </div>
+</div>
+
+        {/* BREADCRUMBS & HEADER */}
+        <div className="bg-white border-b border-slate-200 px-6 lg:px-10 py-5">
+          
+          
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <h1 className="text-2xl font-bold text-slate-800 uppercase tracking-tight">
+              Detailed <span className="text-[#1e3a8a]">Transaction History</span>
+            </h1>
+            <div className="bg-slate-50 border border-slate-200 px-4 py-2 rounded flex items-center gap-3">
+               <ReceiptIndianRupee size={16} className="text-blue-800" />
+               <span className="text-xs font-bold text-slate-700 uppercase tracking-tighter">Total Transactions: {data.length}</span>
             </div>
+          </div>
+        </div>
 
-            <div className="hidden md:flex items-center gap-3 bg-white px-5 py-3 rounded-2xl border border-slate-200 shadow-sm">
-              <Receipt className="text-blue-600" size={20} />
-              <div className="text-right leading-none">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total Logs</p>
-                <p className="text-sm font-black text-slate-900 italic mt-1">{data.length} Records</p>
-              </div>
-            </div>
-          </header>
-
+        <div className="max-w-[1200px] mx-auto p-6 md:p-8 space-y-6">
+          
           {error && (
-            <div className="flex items-center gap-3 bg-red-50 border border-red-100 text-red-600 p-4 rounded-2xl animate-shake">
-              <AlertCircle size={18} />
-              <p className="font-black text-[10px] uppercase tracking-widest">{error}</p>
+            <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded flex items-center gap-3 text-xs font-bold uppercase tracking-wider">
+              <AlertCircle size={16} /> {error}
             </div>
           )}
 
-          {/* MAIN LEDGER TABLE */}
-          <div className="bg-white rounded-[2rem] border border-slate-200 shadow-xl shadow-slate-200/40 overflow-hidden">
-            {loading ? (
-              <div className="p-12 space-y-4">
-                {[1, 2, 3, 4, 5].map(i => (
-                  <div key={i} className="h-14 bg-slate-50 rounded-xl animate-pulse" />
-                ))}
-              </div>
-            ) : data.length === 0 ? (
-              <div className="p-20 text-center flex flex-col items-center">
-                <div className="h-16 w-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-200 mb-4 border border-slate-100">
-                  <CreditCard size={32} />
-                </div>
-                <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest italic">No Transaction Nodes Detected</h3>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50/50 border-b border-slate-100">
-                      <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Module / Identification</th>
-                      <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Value</th>
-                      <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Status</th>
-                      <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Timestamp</th>
-                      <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">Invoices</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-50">
-                    {data.map((item) => {
-                      const status = getStatusConfig(item.status);
-                      return (
-                        <tr key={item.paymentId} className="group hover:bg-blue-50/30 transition-all duration-300">
-                          <td className="px-8 py-5">
-                            <div className="flex flex-col">
-                              <span className="text-sm font-black text-slate-900 italic tracking-tight group-hover:text-blue-600 transition-colors">
-                                {item.courseName || "Test Series Module"}
-                              </span>
-                              <span className="text-[10px] font-mono font-bold text-slate-400 mt-1 uppercase opacity-60">
-                                TXID: {item.transactionId || item.paymentId}
-                              </span>
-                            </div>
-                          </td>
-
-                          <td className="px-8 py-5">
-                            <span className="text-sm font-black text-slate-900 tracking-tighter italic">
-                              ₹{item.amount}
-                            </span>
-                          </td>
-
-                          <td className="px-8 py-5">
-                            <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg border text-[9px] font-black tracking-widest ${status.style}`}>
-                              {status.icon}
-                              {status.label}
-                            </div>
-                          </td>
-
-                          <td className="px-8 py-5">
-                            <div className="flex flex-col leading-none">
-                              <span className="text-[11px] font-black text-slate-500 uppercase">{new Date(item.date).toLocaleDateString()}</span>
-                              <span className="text-[9px] font-bold text-slate-300 mt-1 uppercase tracking-tighter">Authorized</span>
-                            </div>
-                          </td>
-
-                          <td className="px-8 py-5 text-right">
-                            {item.courseName ? (
-                              <button
-                                onClick={() => handleDownload(item.paymentId)}
-                                className="p-3 bg-slate-50 text-slate-400 hover:text-white hover:bg-blue-600 rounded-xl transition-all shadow-sm border border-slate-100 group-hover:scale-110 active:scale-95"
-                                title="Download Receipt"
-                              >
-                                <Download size={16} />
-                              </button>
-                            ) : (
-                              <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">
-                                Unavailable
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
+          {/* IMPORTANT NOTICE */}
+          <div className="bg-blue-50 border border-blue-100 p-4 rounded flex gap-4 items-start">
+            <FileText className="text-blue-800 shrink-0" size={20} />
+            <div className="space-y-1">
+              <p className="text-[11px] text-blue-900 font-bold uppercase tracking-tight">Financial Records Note:</p>
+              <p className="text-[11px] text-blue-800 leading-relaxed">
+                Receipts are generated only for successful transactions. If your payment was deducted but shows as "FAILED" or "PROCESSING," please allow 24-48 hours for the gateway to reconcile with our servers.
+              </p>
+            </div>
           </div>
 
-          {/* SYSTEM FOOTER */}
-          <footer className="flex items-center justify-between px-2 pt-2 opacity-50">
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">
-              Secure SSL Encrypted Ledger
-            </p>
-            <div className="flex gap-2">
-              <div className="h-1 w-1 rounded-full bg-blue-600" />
-              <div className="h-1 w-1 rounded-full bg-blue-300" />
-            </div>
-          </footer>
+          {/* MAIN LEDGER TABLE */}
+<div className="bg-white rounded border border-slate-200 shadow-sm overflow-hidden">
 
+  {data.length === 0 ? (
+    <div className="p-20 text-center flex flex-col items-center">
+      <CreditCard size={48} className="text-slate-200 mb-4" />
+      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">
+        No Electronic Payment Records Found
+      </h3>
+    </div>
+  ) : (
+    <>
+      {/* DESKTOP TABLE */}
+      <div className="hidden md:block overflow-x-auto">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="bg-slate-50 text-slate-500 text-[10px] font-bold uppercase tracking-widest border-b border-slate-200">
+              <th className="px-6 py-4">S.No.</th>
+              <th className="px-6 py-4">Examination / Item Name</th>
+              <th className="px-6 py-4">Amount</th>
+              <th className="px-6 py-4 text-center">Status</th>
+              <th className="px-6 py-4">Date & Time</th>
+              <th className="px-6 py-4 text-center">Receipt</th>
+            </tr>
+          </thead>
+
+          <tbody className="divide-y divide-slate-100">
+            {data.map((item, index) => {
+              const status = getStatusConfig(item.status);
+              return (
+                <tr
+                  key={item.paymentId}
+                  className="hover:bg-slate-50/50 transition-colors"
+                >
+                  <td className="px-6 py-5 text-xs font-mono text-slate-400">
+                    {String(index + 1).padStart(2, "0")}
+                  </td>
+
+                  <td className="px-6 py-5">
+                    <span className="text-xs font-bold text-slate-800 uppercase">
+                      {item.courseName || "Educational Module"}
+                    </span>
+                    <p className="text-[9px] font-mono text-slate-400 mt-1">
+                      REF: {item.transactionId || item.paymentId}
+                    </p>
+                  </td>
+
+                  <td className="px-6 py-5">
+                    <span className="text-sm font-bold">₹{item.amount}</span>
+                  </td>
+
+                  <td className="px-6 py-5 text-center">
+                    <span className={`px-2 py-0.5 rounded-sm text-[9px] font-bold ${status.style}`}>
+                      {status.icon} {status.label}
+                    </span>
+                  </td>
+
+                  <td className="px-6 py-5 text-xs text-slate-600">
+                    {new Date(item.date).toLocaleString("en-GB")}
+                  </td>
+
+                  <td className="px-6 py-5 text-center">
+                    {item.courseName ? (
+                      <button
+                        onClick={() => handleDownload(item.paymentId)}
+                        className="text-[#1e3a8a] hover:text-blue-900 text-[10px] font-bold uppercase border-b"
+                      >
+                        Get Receipt
+                      </button>
+                    ) : (
+                      <span className="text-[10px] text-slate-300 font-bold">NA</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* MOBILE CARD VIEW */}
+      <div className="md:hidden space-y-4 p-4">
+        {data.map((item, index) => {
+          const status = getStatusConfig(item.status);
+
+          return (
+            <div
+              key={item.paymentId}
+              className="border rounded-xl p-4 shadow-sm bg-white"
+            >
+              <div className="flex justify-between mb-1">
+                <p className="text-xs font-mono text-slate-400">
+                  #{String(index + 1).padStart(2, "0")}
+                </p>
+                <span className={`text-[9px] font-bold px-2 py-0.5 rounded ${status.style}`}>
+                  {status.label}
+                </span>
+              </div>
+
+              <p className="font-bold text-sm text-slate-800 uppercase">
+                {item.courseName || "Educational Module"}
+              </p>
+
+              <p className="text-[10px] text-slate-400 mt-1 font-mono">
+                REF: {item.transactionId || item.paymentId}
+              </p>
+
+              <div className="flex justify-between items-center mt-3">
+                <span className="text-sm font-bold">₹{item.amount}</span>
+                <span className="text-xs text-slate-600">
+                  {new Date(item.date).toLocaleString("en-GB")}
+                </span>
+              </div>
+
+              {item.courseName && (
+                <button
+                  onClick={() => handleDownload(item.paymentId)}
+                  className="mt-3 w-full py-2 bg-blue-600 text-white rounded-lg text-[10px] font-bold uppercase"
+                >
+                  Download Receipt
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </>
+  )}
+</div>
+          
+          <div className="text-center pb-10">
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] italic">
+              Automated Digital Financial Ledger • Brilliant Bihar Official Portal
+            </p>
+          </div>
         </div>
       </main>
     </div>

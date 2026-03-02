@@ -7,6 +7,11 @@ import {
   CheckCircle2,
   XCircle,
   Target,
+  FileText,
+  Calendar,
+  Home,
+  ExternalLink,
+  ShieldCheck,
   Search
 } from "lucide-react";
 import StudentSidebar from "../../components/student/StudentSidebar";
@@ -24,9 +29,7 @@ export default function ResultsPage() {
   const fetchResults = async () => {
     try {
       setLoading(true);
-
       const res = await axios.get("/results/my-results");
-
       setAttempts(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Error fetching results:", err);
@@ -36,133 +39,209 @@ export default function ResultsPage() {
     }
   };
 
-  if (loading) return (
-    <Loader />
-  );
+  if (loading) return <Loader />;
 
   return (
-    <div className="flex min-h-screen bg-[#F8FAFC]">
+    <div className="flex min-h-screen bg-[#F1F5F9]">
       <StudentSidebar />
 
-      <main className="flex-1 overflow-y-auto">
-        <div className="max-w-[1100px] mx-auto p-8 space-y-8">
+      <main className="flex-1 min-w-0 h-screen overflow-y-auto">
+         {/* 1. TOP UTILITY BAR (VERY GOV STYLE) */}
+<div className="sticky top-0 z-5 bg-[#355872] text-white px-6 py-6 flex justify-between items-center text-[11px] font-medium">
+  <div className="flex gap-4">
+    <span className="hover:underline cursor-pointer"></span>
+    <span className="hover:underline cursor-pointer"></span>
+  </div>
+  <div className="flex gap-4 items-center">
+    <span>
+      Standard Time: {new Date().toLocaleTimeString()}
+    </span>
+   
+    
+  </div>
+</div>
 
-          {/* HEADER SECTION */}
-          <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-black text-slate-900 tracking-tight">
-                My Result
-              </h1>
-              <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-1">
-                Track your progress & analysis
-              </p>
-            </div>
+        {/* 2. HEADER & BREADCRUMBS */}
+        <div className="bg-white border-b border-slate-200 px-6 lg:px-10 py-6">
+          <div className="max-w-[1200px] mx-auto">
+           
 
-            <div className="bg-white border border-slate-200 px-4 py-2 rounded-2xl flex items-center gap-3 shadow-sm">
-              <Trophy className="text-amber-500" size={20} />
-              <span className="text-sm font-black text-slate-700">
-                {attempts.length} Tests Attempted
-              </span>
-            </div>
-          </header>
-
-          {/* RESULTS LIST */}
-          <div className="space-y-4">
-            {attempts.length > 0 ? (
-              attempts.map((attempt) => (
-                <ResultCard key={attempt._id} attempt={attempt} navigate={navigate} />
-              ))
-            ) : (
-              <div className="text-center py-20 bg-white rounded-[2rem] border-2 border-dashed border-slate-200">
-                <p className="text-slate-400 font-bold">No results found yet. Take a test to see your score!</p>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div>
+                <h1 className="text-2xl md:text-3xl font-bold text-slate-800 uppercase tracking-tight">
+                  Examination <span className="text-[#1e3a8a]">Results Ledger</span>
+                </h1>
+                <p className="text-slate-500 text-xs font-medium mt-1">
+                  Official chronological record of all examination attempts and proficiency metrics.
+                </p>
               </div>
-            )}
+
+              <div className="bg-slate-50 border border-slate-200 px-5 py-2.5 rounded flex items-center gap-4 shadow-sm">
+                <div className="bg-amber-100 p-2 rounded text-amber-700">
+                  <Trophy size={18} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Total Attempts</p>
+                  <p className="text-sm font-bold text-slate-700">{attempts.length} Official Logs</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </main>
-    </div>
-  );
-}
 
-/* ================= COMPONENT ================= */
+        {/* ================= RESPONSIVE RESULTS ================= */}
+<div>
 
-function ResultCard({ attempt, navigate }) {
-  // Accuracy calculation
-  const total = attempt.correctCount + attempt.wrongCount;
-  const accuracy = total > 0 ? ((attempt.correctCount / total) * 100).toFixed(0) : 0;
+  {/* ===== DESKTOP TABLE ===== */}
+  <div className="hidden md:block overflow-x-auto">
+    <table className="w-full text-left border-collapse min-w-[800px]">
+      <thead>
+        <tr className="bg-white text-slate-500 text-[10px] font-bold uppercase tracking-widest border-b border-slate-100">
+          <th className="px-6 py-4">S.No.</th>
+          <th className="px-6 py-4">Examination Nomenclature</th>
+          <th className="px-6 py-4">Submission Date</th>
+          <th className="px-6 py-4 text-center">Score Breakdown</th>
+          <th className="px-6 py-4 text-center">Accuracy</th>
+          <th className="px-6 py-4 text-center">Final Score</th>
+          <th className="px-6 py-4 text-right">View Log</th>
+        </tr>
+      </thead>
 
-  return (
-    <div className="group bg-white p-6 rounded-[2rem] border border-slate-200 hover:border-blue-600 hover:shadow-xl hover:shadow-blue-900/5 transition-all cursor-default">
-      <div className="flex flex-col lg:flex-row justify-between gap-6">
+      <tbody className="divide-y divide-slate-50">
+        {attempts.length > 0 ? (
+          attempts.map((attempt, index) => {
+            const total = attempt.correctCount + attempt.wrongCount;
+            const accuracy = total > 0
+              ? ((attempt.correctCount / total) * 100).toFixed(0)
+              : 0;
 
-        {/* Left Side: Test Info */}
-        <div className="space-y-2 flex-1">
-          <div className="flex items-center gap-2">
-            <span className="px-3 py-1 bg-blue-50 text-blue-600 text-[10px] font-black uppercase tracking-widest rounded-lg">
-              {attempt.testId?.testSeriesId?.title || "Test Series"}
-            </span>
-            <span className="text-slate-300">•</span>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-              {attempt.submittedAt
-                ? new Date(attempt.submittedAt).toLocaleDateString("en-GB")
-                : "N/A"}
-            </span>
-          </div>
+            return (
+              <tr key={attempt._id} className="hover:bg-blue-50/50">
 
-          <h3 className="text-xl font-black text-slate-900 group-hover:text-blue-600 transition-colors">
+                <td className="px-6 py-5 text-xs font-mono text-slate-400">
+                  {String(index + 1).padStart(2, "0")}
+                </td>
+
+                <td className="px-6 py-5">
+                  <p className="font-bold text-slate-800 uppercase">
+                    {attempt.testId?.name}
+                  </p>
+                  <span className="text-[9px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 inline-block mt-1">
+                    {attempt.testId?.testSeriesId?.title || "Educational Series"}
+                  </span>
+                </td>
+
+                <td className="px-6 py-5 text-xs text-slate-600">
+                  {attempt.submittedAt
+                    ? new Date(attempt.submittedAt).toLocaleDateString("en-GB")
+                    : "N/A"}
+                </td>
+
+                <td className="px-6 py-5">
+                  <div className="flex justify-center gap-4 text-xs">
+                    <div>
+                      <p className="text-emerald-600 font-bold text-[9px] uppercase">Correct</p>
+                      <p className="font-bold">{attempt.correctCount}</p>
+                    </div>
+                    <div>
+                      <p className="text-red-600 font-bold text-[9px] uppercase">Wrong</p>
+                      <p className="font-bold">{attempt.wrongCount}</p>
+                    </div>
+                  </div>
+                </td>
+
+                <td className="px-6 py-5 text-center">
+                  <span className="text-xs font-bold bg-indigo-50 text-indigo-700 px-2 py-1 rounded">
+                    {accuracy}%
+                  </span>
+                </td>
+
+                <td className="px-6 py-5 text-center font-black">
+                  {attempt.score}
+                </td>
+
+                <td className="px-6 py-5 text-right">
+                  <button
+                    onClick={() => navigate(`/student/result/${attempt._id}`)}
+                    className="text-[#1e3a8a] font-bold text-[10px] uppercase"
+                  >
+                    Details →
+                  </button>
+                </td>
+
+              </tr>
+            );
+          })
+        ) : (
+          <tr>
+            <td colSpan="7" className="p-20 text-center text-slate-400 text-xs font-bold uppercase">
+              No examination records found
+            </td>
+          </tr>
+        )}
+      </tbody>
+    </table>
+  </div>
+
+
+  {/* ===== MOBILE CARDS ===== */}
+  <div className="md:hidden space-y-4 p-4">
+    {attempts.map((attempt, index) => {
+      const total = attempt.correctCount + attempt.wrongCount;
+      const accuracy = total > 0
+        ? ((attempt.correctCount / total) * 100).toFixed(0)
+        : 0;
+
+      return (
+        <div key={attempt._id} className="border rounded-xl p-4 shadow-sm bg-white">
+
+          <p className="text-xs text-slate-400 font-mono">
+            #{String(index + 1).padStart(2, "0")}
+          </p>
+
+          <p className="font-bold text-slate-800 uppercase text-sm">
             {attempt.testId?.name}
-          </h3>
+          </p>
 
-          {/* Stats Bar */}
-          <div className="flex flex-wrap gap-6 pt-2">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg">
-                <CheckCircle2 size={14} />
-              </div>
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase leading-none">Correct</p>
-                <p className="text-sm font-black text-slate-900">{attempt.correctCount}</p>
-              </div>
-            </div>
+          <span className="text-[9px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded border inline-block mt-1">
+            {attempt.testId?.testSeriesId?.title || "Educational Series"}
+          </span>
 
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-rose-50 text-rose-600 rounded-lg">
-                <XCircle size={14} />
-              </div>
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase leading-none">Wrong</p>
-                <p className="text-sm font-black text-slate-900">{attempt.wrongCount}</p>
-              </div>
-            </div>
+          <p className="text-xs text-slate-600 mt-2">
+            Date: {attempt.submittedAt
+              ? new Date(attempt.submittedAt).toLocaleDateString("en-GB")
+              : "N/A"}
+          </p>
 
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
-                <Target size={14} />
-              </div>
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase leading-none">Accuracy</p>
-                <p className="text-sm font-black text-slate-900">{accuracy}%</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Side: Score & Action */}
-        <div className="flex items-center justify-between lg:justify-end gap-8 border-t lg:border-t-0 pt-4 lg:pt-0">
-          <div className="text-right">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Final Score</p>
-            <h4 className="text-3xl font-black text-blue-600">{attempt.score}</h4>
+          <div className="flex justify-between mt-3 text-xs">
+            <span className="text-emerald-600 font-bold">
+              ✔ {attempt.correctCount}
+            </span>
+            <span className="text-red-600 font-bold">
+              ✖ {attempt.wrongCount}
+            </span>
+            <span className="font-bold text-indigo-700">
+              {accuracy}%
+            </span>
           </div>
 
-          <button
-            onClick={() => navigate(`/student/result/${attempt._id}`)}
-            className="bg-slate-900 text-white p-4 rounded-2xl hover:bg-blue-600 transition-all shadow-lg shadow-slate-200 group/btn"
-          >
-            <ChevronRight size={24} className="group-hover:translate-x-1 transition-transform" />
-          </button>
-        </div>
+          <div className="flex justify-between items-center mt-3">
+            <span className="text-lg font-black">{attempt.score}</span>
+            <button
+              onClick={() => navigate(`/student/result/${attempt._id}`)}
+              className="bg-[#1e3a8a] text-white text-[10px] px-4 py-2 rounded-lg font-bold uppercase"
+            >
+              View Details
+            </button>
+          </div>
 
-      </div>
+        </div>
+      );
+    })}
+  </div>
+
+</div>
+      </main>
     </div>
   );
 }

@@ -28,6 +28,7 @@ import RecentPerformance from "./pages/student/RecentPerformance";
 import ResultDetail from "./pages/student/ResultDetail";
 import ResultsPage from "./pages/student/ResultsPage";
 import SeriesDetails from "./pages/student/SeriesDetails";
+// import TestSeriesCardImageStyle1 from "./pages/Home1";
 
 
 /* Protected Route Component */
@@ -58,11 +59,13 @@ function App() {
       />
       <Routes>
         {/* Public Routes */}
-        <Route path="/" element={<><Navbar /><Home /></>} />
-        <Route path="/login" element={<><Navbar /><Login /></>} />
-        <Route path="/register" element={<><Navbar /><Register /></>} />
-        <Route path="/forgot-password" element={<><Navbar /><ForgotPassword /></>} />
-        <Route path="/reset-password/:token" element={<><Navbar /><ResetPassword /></>} />
+        
+      
+        <Route path="/login" element={<><Login /></>} />
+          {/* <Route path="/home" element={<><Navbar /><TestSeriesCardImageStyle1 /></>} /> */}
+        <Route path="/register" element={<><Register /></>} />
+        <Route path="/forgot-password" element={<><ForgotPassword /></>} />
+        <Route path="/reset-password/:token" element={<><ResetPassword /></>} />
 
         {/* Admin Route */}
         <Route

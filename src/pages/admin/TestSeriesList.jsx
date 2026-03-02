@@ -1,4 +1,3 @@
-// src/pages/admin/TestSeriesList.jsx
 import { useEffect, useMemo, useRef, useState, useContext } from "react";
 import axios from "../../services/axiosInstance";
 import { Link } from "react-router-dom";
@@ -15,17 +14,12 @@ import {
   AlertCircle,
   ClipboardList,
   X,
+  Globe,
+  Home,
+  ChevronRight,
+  RefreshCcw,
 } from "lucide-react";
 import { AuthContext } from "../../context/AuthContext";
-
-/**
- * ✅ UI upgrades:
- * - Fully responsive (mobile-first)
- * - Mobile search always visible
- * - Card view on small screens, table on lg+
- * - Sticky action menu with keyboard support
- * - Better empty/loading states
- */
 
 function useDebounce(value, delay = 350) {
   const [deb, setDeb] = useState(value);
@@ -50,748 +44,249 @@ export default function TestSeriesList() {
   const [series, setSeries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
-  // search
   const [query, setQuery] = useState("");
   const q = useDebounce(query, 300);
 
-  // dropdown menu
   const [openMenuId, setOpenMenuId] = useState(null);
   const [activeIndex, setActiveIndex] = useState(0);
-
-  // confirm modal
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState(null); // {id,title}
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  // refs
   const buttonRefs = useRef({});
   const menuRefs = useRef({});
   const itemRefs = useRef([]);
   const confirmCancelRef = useRef(null);
 
-useEffect(() => {
-  if (hasFetched.current) return;
-  hasFetched.current = true;
-  fetchData();
-}, []);
+  useEffect(() => {
+    if (hasFetched.current) return;
+    hasFetched.current = true;
+    fetchData();
+  }, []);
 
-const fetchData = async () => {
-  let loadingToast;
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const res = await axios.get("/test-series");
+      const payload = res?.data;
+      setSeries(Array.isArray(payload) ? payload : payload?.data || []);
+    } catch (err) {
+      setError("Failed to retrieve system test series records.");
+      toast.error("Data Fetch Error ❌");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  try {
-    setLoading(true);
-    setError("");
-
-    loadingToast = toast.loading("Fetching test series...");
-
-    const res = await axios.get("/test-series");
-    const payload = res?.data;
-
-    setSeries(
-      Array.isArray(payload)
-        ? payload
-        : payload?.data && Array.isArray(payload.data)
-        ? payload.data
-        : []
-    );
-
-    if (loadingToast) toast.dismiss(loadingToast);
-    toast.success("Test series loaded ✅");
-
-  } catch (err) {
-    toast.dismiss(loadingToast);
-    setError("Failed to load test series");
-    setSeries([]);
-    toast.error("Failed to load test series ❌");
-  } finally {
-    setLoading(false);
-  }
-};
   useEffect(() => {
     const onDocPointerDown = (e) => {
       if (!openMenuId) return;
-
       const btn = buttonRefs.current[openMenuId];
       const menu = menuRefs.current[openMenuId];
-
-      const insideBtn = btn && btn.contains(e.target);
-      const insideMenu = menu && menu.contains(e.target);
-
-      if (!insideBtn && !insideMenu) setOpenMenuId(null);
+      if (btn && !btn.contains(e.target) && menu && !menu.contains(e.target)) {
+        setOpenMenuId(null);
+      }
     };
-
-    document.addEventListener("pointerdown", onDocPointerDown); // ✅ no capture
-
-    return () => {
-      document.removeEventListener("pointerdown", onDocPointerDown);
-    };
+    document.addEventListener("pointerdown", onDocPointerDown);
+    return () => document.removeEventListener("pointerdown", onDocPointerDown);
   }, [openMenuId]);
 
-  // ✅ escape closes menu / modal
-
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.key !== "Escape") return;
-      if (confirmOpen) setConfirmOpen(false);
-      if (openMenuId) setOpenMenuId(null);
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [openMenuId, confirmOpen]);
-
   const filteredSeries = useMemo(() => {
-    const s = Array.isArray(series) ? series : [];
-    const qq = String(q || "")
-      .trim()
-      .toLowerCase();
-    if (!qq) return s;
-    return s.filter((x) => {
-      const title = String(x?.title || "").toLowerCase();
-      const desc = String(x?.description || "").toLowerCase();
-      return title.includes(qq) || desc.includes(qq);
-    });
-  }, [series, q]);
+    const qq = query.trim().toLowerCase();
+    if (!qq) return series;
+    return series.filter(x => 
+      x.title?.toLowerCase().includes(qq) || x.description?.toLowerCase().includes(qq)
+    );
+  }, [series, query]);
 
-  const getMenuActions = (item) =>
-    [
-      {
-        key: "manage-tests",
-        label: "Manage Tests",
-        icon: ClipboardList,
-        to: `/admin/tests?seriesId=${item._id}`,
-        tone: "indigo",
-        show: true,
-      },
-      {
-        key: "edit",
-        label: "Edit Series",
-        icon: Edit3,
-        to: `/admin/test-series/edit/${item._id}`,
-        tone: "blue",
-        show: true,
-      },
-      {
-        key: "delete",
-        label: "Delete Series",
-        icon: Trash2,
-        danger: true,
-        show: canDelete,
-      },
-    ].filter((a) => a.show);
+  const getMenuActions = (item) => [
+    { key: "manage", label: "Manage Modules", icon: ClipboardList, to: `/admin/tests?seriesId=${item._id}`, tone: "blue" },
+    { key: "edit", label: "Edit Nomenclature", icon: Edit3, to: `/admin/test-series/edit/${item._id}`, tone: "blue" },
+    { key: "delete", label: "Delete Archive", icon: Trash2, danger: true, show: canDelete },
+  ].filter(a => a.show !== false);
 
-  const openMenu = (id) => {
-    setOpenMenuId(id);
-    setActiveIndex(0);
-    setTimeout(() => itemRefs.current?.[0]?.focus?.(), 0);
-  };
+  const toggleMenu = (id) => setOpenMenuId(openMenuId === id ? null : id);
 
-  const closeMenu = () => {
-    const id = openMenuId;
-    setOpenMenuId(null);
-    setActiveIndex(0);
-    if (id && buttonRefs.current[id])
-      setTimeout(() => buttonRefs.current[id]?.focus?.(), 0);
-  };
-
-  const toggleMenu = (id) => {
-    if (openMenuId === id) closeMenu();
-    else openMenu(id);
-  };
-
-  const onMenuKeyDown = (e, actions, itemId) => {
-    const max = actions.length - 1;
-
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      const next = activeIndex >= max ? 0 : activeIndex + 1;
-      setActiveIndex(next);
-      itemRefs.current[next]?.focus?.();
-    }
-    if (e.key === "ArrowUp") {
-      e.preventDefault();
-      const prev = activeIndex <= 0 ? max : activeIndex - 1;
-      setActiveIndex(prev);
-      itemRefs.current[prev]?.focus?.();
-    }
-    if (e.key === "Home") {
-      e.preventDefault();
-      setActiveIndex(0);
-      itemRefs.current[0]?.focus?.();
-    }
-    if (e.key === "End") {
-      e.preventDefault();
-      setActiveIndex(max);
-      itemRefs.current[max]?.focus?.();
-    }
-    if (e.key === "Tab") closeMenu();
-    if (e.key === "Escape") {
-      e.preventDefault();
-      closeMenu();
-    }
-
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      const action = actions[activeIndex];
-      if (!action) return;
-      if (action.key === "delete") {
-        closeMenu();
-        openConfirm(itemId);
-        return;
-      }
-      itemRefs.current[activeIndex]?.click?.();
+  const confirmDelete = async () => {
+    if (!deleteTarget?.id) return;
+    try {
+      setDeleteLoading(true);
+      await axios.delete(`/test-series/${deleteTarget.id}`);
+      toast.success("Record Deleted ✅");
+      setConfirmOpen(false);
+      fetchData();
+    } catch (err) {
+      toast.error("Deletetion Failed ❌");
+    } finally {
+      setDeleteLoading(false);
     }
   };
-
-  const openConfirm = (seriesId) => {
-    const item = series.find((s) => s._id === seriesId);
-    setDeleteTarget({ id: seriesId, title: item?.title || "this series" });
-    setConfirmOpen(true);
-    setTimeout(() => confirmCancelRef.current?.focus?.(), 0);
-  };
-
-  const closeConfirm = () => {
-    if (deleteLoading) return;
-    setConfirmOpen(false);
-    setDeleteTarget(null);
-  };
-
-const confirmDelete = async () => {
-  if (!deleteTarget?.id) return;
-  if (!canDelete) {
-    toast.error("You don't have permission ❌");
-    return;
-  }
-
-  let loadingToast;
-
-  setDeleteLoading(true);
-
-  try {
-    loadingToast = toast.loading("Deleting test series...");
-
-    await axios.delete(`/test-series/${deleteTarget.id}`);
-
-    toast.dismiss(loadingToast);
-    toast.success("Test series deleted successfully 🗑️");
-
-    setConfirmOpen(false);
-    setDeleteTarget(null);
-
-    await fetchData();
-
-  } catch (err) {
-    toast.dismiss(loadingToast);
-    toast.error(err?.response?.data?.message || "Delete failed ❌");
-  } finally {
-    setDeleteLoading(false);
-  }
-};
 
   return (
-    <div className="flex min-h-screen bg-[#F8FAFC]">
+    <div className="flex min-h-screen bg-[#F1F5F9]">
       <AdminSidebar />
 
-      <main className="flex-1 overflow-y-auto">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10 py-6 lg:py-10">
-          {/* Header */}
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-5 mb-6 lg:mb-10">
-            <div>
-              <div className="inline-flex items-center gap-2 text-blue-600 font-black text-[10px] uppercase tracking-[0.22em] mb-2">
-                <Layers size={14} />
-                <span>Product Management</span>
-              </div>
-
-              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                Test <span className="text-blue-600">Series</span>
-              </h1>
-
-              <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-500">
-                <span>
-                  Role: <span className="font-bold text-slate-700">{role}</span>
-                </span>
-                {!canDelete && (
-                  <span className="inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-slate-400 bg-white border border-slate-200 px-3 py-1 rounded-full">
-                    Delete disabled
-                  </span>
-                )}
-                <span className="inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-slate-400 bg-white border border-slate-200 px-3 py-1 rounded-full">
-                  Total: {filteredSeries.length}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-              {/* Search (always visible on all sizes) */}
-              <div className="relative w-full sm:w-[320px]">
-                <Search
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                  size={16}
-                />
-                <input
-                  type="text"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search series title/description…"
-                  className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-2xl text-sm focus:ring-2 ring-blue-500/20 outline-none shadow-sm"
-                />
-                {query ? (
-                  <button
-                    type="button"
-                    onClick={() => setQuery("")}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100"
-                    title="Clear"
-                  >
-                    <X size={16} />
-                  </button>
-                ) : null}
-              </div>
-
-              <Link
-                to="/admin/test-series/create"
-                className="flex items-center justify-center gap-2 bg-blue-600 text-white px-5 py-3 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all active:scale-[0.98] w-full sm:w-auto"
-              >
-                <Plus size={18} />
-                Create New
-              </Link>
-            </div>
-          </div>
-
-          {/* Error */}
-          {error && (
-            <div className="bg-red-50 border border-red-100 text-red-600 p-4 rounded-2xl mb-6 flex items-center gap-3">
-              <AlertCircle size={20} />
-              <p className="font-bold text-sm">{error}</p>
-            </div>
-          )}
-
-          {/* Content */}
-          <div className="bg-white rounded-[1.5rem] sm:rounded-[2.5rem] border border-slate-200/60 shadow-sm overflow-visible lg:overflow-hidden">
-            {loading ? (
-              <div className="p-16 sm:p-20 flex flex-col items-center justify-center space-y-4">
-                <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full" />
-                <p className="text-slate-400 font-black text-[10px] uppercase tracking-widest">
-                  Fetching series…
-                </p>
-              </div>
-            ) : filteredSeries.length === 0 ? (
-              <div className="p-14 sm:p-20 text-center">
-                <div className="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Layers className="text-slate-200" size={32} />
-                </div>
-                <h3 className="text-lg font-black text-slate-900">
-                  No test series found
-                </h3>
-                <p className="text-slate-500 mt-2 text-sm">
-                  Try a different keyword or create a new series.
-                </p>
-              </div>
-            ) : (
-              <>
-                {/* ✅ Mobile / Tablet: Card view */}
-                <div className="block lg:hidden">
-                  <div className="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {filteredSeries?.map((item) => {
-                      const actions = getMenuActions(item);
-
-                      return (
-                        <div
-                          key={item._id}
-                          className="group bg-white border border-slate-200 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all"
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex items-start gap-3 min-w-0">
-                              <div className="h-10 w-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0">
-                                <Layers size={18} />
-                              </div>
-
-                              <div className="min-w-0">
-                                <p className="font-black text-slate-900 truncate">
-                                  {item.title}
-                                </p>
-                                <p className="text-xs text-slate-500 line-clamp-2 mt-1">
-                                  {item.description || "—"}
-                                </p>
-                              </div>
-                            </div>
-
-                            {/* Actions button */}
-                            <div className="relative">
-                              <button
-                                ref={(el) =>
-                                  (buttonRefs.current[item._id] = el)
-                                }
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleMenu(item._id);
-                                }}
-                                onKeyDown={(e) => {
-                                  if (
-                                    e.key === "Enter" ||
-                                    e.key === " " ||
-                                    e.key === "ArrowDown"
-                                  ) {
-                                    e.preventDefault();
-                                    openMenu(item._id);
-                                  }
-                                }}
-                                className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all"
-                                aria-haspopup="menu"
-                                aria-expanded={openMenuId === item._id}
-                                aria-controls={`menu-${item._id}`}
-                                title="More actions"
-                              >
-                                <MoreHorizontal size={18} />
-                              </button>
-
-                              {openMenuId === item._id && (
-                                <div
-                                  id={`menu-${item._id}`}
-                                  ref={(el) =>
-                                    (menuRefs.current[item._id] = el)
-                                  }
-                                  role="menu"
-                                  aria-label="Actions"
-                                  className="absolute right-0 top-11 z-50 w-56 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden"
-                                  onPointerDown={(e) => e.stopPropagation()}
-                                  onTouchStart={(e) => e.stopPropagation()}
-                                  onKeyDown={(e) =>
-                                    onMenuKeyDown(e, actions, item._id)
-                                  }
-                                >
-                                  {actions.map((a, idx) => {
-                                    const Icon = a.icon;
-                                    const base =
-                                      "w-full flex items-center gap-3 px-4 py-3 text-sm font-bold transition focus:outline-none focus:ring-2 focus:ring-blue-500/30";
-
-                                    if (a.key === "delete") {
-                                      return (
-                                        <button
-                                          key={a.key}
-                                          ref={(el) =>
-                                            (itemRefs.current[idx] = el)
-                                          }
-                                          role="menuitem"
-                                          tabIndex={idx === 0 ? 0 : -1}
-                                          onFocus={() => setActiveIndex(idx)}
-                                          onClick={() => {
-                                            closeMenu();
-                                            openConfirm(item._id);
-                                          }}
-                                          className={`${base} text-red-600 hover:bg-red-50`}
-                                        >
-                                          <Icon size={16} />
-                                          {a.label}
-                                        </button>
-                                      );
-                                    }
-
-                                    const tone =
-                                      a.tone === "indigo"
-                                        ? "hover:bg-indigo-50 hover:text-indigo-700 text-slate-700"
-                                        : "hover:bg-blue-50 hover:text-blue-700 text-slate-700";
-
-                                    return (
-                                      <Link
-                                        key={a.key}
-                                        ref={(el) =>
-                                          (itemRefs.current[idx] = el)
-                                        }
-                                        role="menuitem"
-                                        tabIndex={idx === 0 ? 0 : -1}
-                                        onFocus={() => setActiveIndex(idx)}
-                                        onClick={() => closeMenu()}
-                                        to={a.to}
-                                        className={`${base} ${tone}`}
-                                      >
-                                        <Icon size={16} />
-                                        {a.label}
-                                      </Link>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="mt-4 grid grid-cols-2 gap-3">
-                            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3">
-                              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                                Price
-                              </p>
-                              <p className="text-sm font-black text-slate-900 mt-1">
-                                {formatMoney(item.price)}
-                              </p>
-                            </div>
-
-                            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3">
-                              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                                Discount
-                              </p>
-                              <span
-                                className={`mt-1 inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black ${
-                                  Number(item.discount || 0) > 0
-                                    ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
-                                    : "bg-white text-slate-500 border border-slate-200"
-                                }`}
-                              >
-                                <Tag size={12} />
-                                {Number(item.discount || 0)}%
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* ✅ Desktop: Table view */}
-                <div className="hidden lg:block overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="border-b border-slate-50 bg-slate-50/50">
-                        <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest">
-                          Title
-                        </th>
-                        <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest">
-                          Pricing
-                        </th>
-                        <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest">
-                          Discount
-                        </th>
-                        <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest text-right">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-
-                    <tbody className="divide-y divide-slate-50">
-                      {filteredSeries?.map((item) => {
-                        const actions = getMenuActions(item);
-                        return (
-                          <tr
-                            key={item._id}
-                            className="group hover:bg-blue-50/30 transition-colors"
-                          >
-                            <td className="px-8 py-5">
-                              <div className="flex items-center gap-4">
-                                <div className="h-10 w-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all">
-                                  <Layers size={18} />
-                                </div>
-                                <div className="min-w-0">
-                                  <span className="block font-black text-slate-800 group-hover:text-blue-700 transition-colors truncate">
-                                    {item.title}
-                                  </span>
-                                  <span className="block text-xs text-slate-400 truncate max-w-[540px]">
-                                    {item.description || "—"}
-                                  </span>
-                                </div>
-                              </div>
-                            </td>
-
-                            <td className="px-8 py-5">
-                              <div className="font-black text-slate-900">
-                                {formatMoney(item.price)}
-                                {Number(item.originalPrice || 0) >
-                                Number(item.price || 0) ? (
-                                  <span className="ml-2 text-xs text-slate-400 line-through font-bold">
-                                    {formatMoney(item.originalPrice)}
-                                  </span>
-                                ) : null}
-                              </div>
-                            </td>
-
-                            <td className="px-8 py-5">
-                              <span
-                                className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black ${
-                                  Number(item.discount || 0) > 0
-                                    ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
-                                    : "bg-slate-50 text-slate-400 border border-slate-200"
-                                }`}
-                              >
-                                <Tag size={12} />
-                                {Number(item.discount || 0)}%
-                              </span>
-                            </td>
-
-                            <td className="px-8 py-5 text-right relative">
-                              <button
-                                ref={(el) =>
-                                  (buttonRefs.current[item._id] = el)
-                                }
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleMenu(item._id);
-                                }}
-                                onKeyDown={(e) => {
-                                  if (
-                                    e.key === "Enter" ||
-                                    e.key === " " ||
-                                    e.key === "ArrowDown"
-                                  ) {
-                                    e.preventDefault();
-                                    openMenu(item._id);
-                                  }
-                                }}
-                                className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all"
-                                aria-haspopup="menu"
-                                aria-expanded={openMenuId === item._id}
-                                aria-controls={`menu-${item._id}`}
-                                title="More actions"
-                              >
-                                <MoreHorizontal size={18} />
-                              </button>
-
-                              {openMenuId === item._id && (
-                                <div
-                                  id={`menu-${item._id}`}
-                                  ref={(el) =>
-                                    (menuRefs.current[item._id] = el)
-                                  }
-                                  role="menu"
-                                  aria-label="Actions"
-                                  className="absolute right-8 top-14 z-50 w-56 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden"
-                                  onKeyDown={(e) =>
-                                    onMenuKeyDown(e, actions, item._id)
-                                  }
-                                >
-                                  {actions.map((a, idx) => {
-                                    const Icon = a.icon;
-                                    const base =
-                                      "w-full flex items-center gap-3 px-4 py-3 text-sm font-bold transition focus:outline-none focus:ring-2 focus:ring-blue-500/30";
-
-                                    if (a.key === "delete") {
-                                      return (
-                                        <button
-                                          key={a.key}
-                                          ref={(el) =>
-                                            (itemRefs.current[idx] = el)
-                                          }
-                                          role="menuitem"
-                                          tabIndex={idx === 0 ? 0 : -1}
-                                          onFocus={() => setActiveIndex(idx)}
-                                          onClick={() => {
-                                            closeMenu();
-                                            openConfirm(item._id);
-                                          }}
-                                          className={`${base} text-red-600 hover:bg-red-50`}
-                                        >
-                                          <Icon size={16} />
-                                          {a.label}
-                                        </button>
-                                      );
-                                    }
-
-                                    const tone =
-                                      a.tone === "indigo"
-                                        ? "hover:bg-indigo-50 hover:text-indigo-700 text-slate-700"
-                                        : "hover:bg-blue-50 hover:text-blue-700 text-slate-700";
-
-                                    return (
-                                      <Link
-                                        key={a.key}
-                                        ref={(el) =>
-                                          (itemRefs.current[idx] = el)
-                                        }
-                                        role="menuitem"
-                                        tabIndex={idx === 0 ? 0 : -1}
-                                        onFocus={() => setActiveIndex(idx)}
-                                        onClick={() => closeMenu()}
-                                        to={a.to}
-                                        className={`${base} ${tone}`}
-                                      >
-                                        <Icon size={16} />
-                                        {a.label}
-                                      </Link>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-
-                <div className="px-4 sm:px-6 py-4 border-t border-slate-100 bg-slate-50/30 text-[11px] font-black uppercase tracking-widest text-slate-400 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <span>Total Items: {filteredSeries.length}</span>
-                  <span className="text-emerald-600">
-                    Product Status: All Live
-                  </span>
-                </div>
-              </>
-            )}
+      <main className="flex-1 min-w-0 h-screen overflow-y-auto">
+        {/* 1. TOP UTILITY BAR */}
+        <div className="bg-[#1e3a8a] text-white px-6 py-2 flex justify-between items-center text-[10px] font-bold uppercase tracking-wider sticky top-0 z-30">
+          <span className="flex items-center gap-2"><Globe size={12}/> Official Product Inventory Console</span>
+          <div className="flex gap-4">
+            <span>Server Time: {new Date().toLocaleTimeString()}</span>
+            <span className="text-emerald-400">● SECURE ACCESS</span>
           </div>
         </div>
 
-        {/* Confirm Modal */}
-        {confirmOpen && (
-          <div
-            className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-[1px] flex items-center justify-center p-4"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="confirm-title"
-            onMouseDown={(e) => {
-              if (e.target === e.currentTarget) closeConfirm();
-            }}
-          >
-            <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden">
-              <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-                <h3
-                  id="confirm-title"
-                  className="text-lg font-black text-slate-900"
-                >
-                  Confirm Delete
-                </h3>
-                <button
-                  onClick={closeConfirm}
-                  className="p-2 rounded-xl hover:bg-slate-100 text-slate-500"
-                  aria-label="Close"
-                >
-                  <X size={18} />
-                </button>
+        {/* 2. HEADER & BREADCRUMBS */}
+        <div className="bg-white border-b border-slate-200 px-6 lg:px-10 py-6">
+          <div className="max-w-[1400px] mx-auto">
+            <nav className="flex items-center gap-2 text-slate-500 text-[11px] font-bold uppercase tracking-widest mb-4">
+              <Home size={12} />
+              <ChevronRight size={10} />
+              <span>Catalog</span>
+              <ChevronRight size={10} />
+              <span className="text-[#1e3a8a]">Test Series Ledger</span>
+            </nav>
+
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+              <div>
+                <h1 className="text-2xl md:text-3xl font-bold text-slate-800 uppercase tracking-tight">
+                  Test Series <span className="text-[#1e3a8a]">Directory</span>
+                </h1>
+                <p className="text-slate-500 text-xs font-medium mt-1 uppercase tracking-tighter">
+                  Total Managed Records: {filteredSeries.length}
+                </p>
               </div>
 
-              <div className="px-5 py-5">
-                <p className="text-sm text-slate-600">
-                  Are you sure you want to delete{" "}
-                  <span className="font-black text-slate-900">
-                    {deleteTarget?.title}
-                  </span>
-                  ? This action cannot be undone.
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                  <input
+                    type="text"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search by Title..."
+                    className="w-full sm:w-64 pl-10 pr-4 py-2 bg-slate-50 border border-slate-300 rounded text-xs font-bold outline-none focus:border-[#1e3a8a]"
+                  />
+                </div>
+                <Link
+                  to="/admin/test-series/create"
+                  className="bg-[#1e3a8a] text-white px-5 py-2.5 rounded font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-blue-900 transition-all shadow-md"
+                >
+                  <Plus size={16} /> Create New Series
+                </Link>
+                <button onClick={fetchData} className="p-2 border border-slate-300 rounded hover:bg-slate-100"><RefreshCcw size={16}/></button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 3. MAIN CONTENT */}
+        <div className="max-w-[1400px] mx-auto p-6 md:p-10">
+          <div className="bg-white border border-slate-200 rounded shadow-sm overflow-hidden">
+            <div className="bg-slate-50 px-6 py-3 border-b border-slate-200">
+               <h3 className="text-[11px] font-bold text-slate-800 uppercase flex items-center gap-2">
+                 <Layers size={16} className="text-[#1e3a8a]" /> Master Inventory Table
+               </h3>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[900px]">
+                <thead>
+                  <tr className="bg-white text-slate-500 text-[10px] font-bold uppercase tracking-widest border-b border-slate-100">
+                    <th className="px-6 py-4">S.No.</th>
+                    <th className="px-6 py-4">Nomenclature / Description</th>
+                    <th className="px-6 py-4">Base Pricing</th>
+                    <th className="px-6 py-4">Rebate (%)</th>
+                    <th className="px-6 py-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {loading ? (
+                    <tr><td colSpan="5" className="p-10 text-center animate-pulse text-xs font-bold text-slate-400">SYNCING REPOSITORY...</td></tr>
+                  ) : filteredSeries.length === 0 ? (
+                    <tr><td colSpan="5" className="p-10 text-center text-xs font-bold text-slate-400 uppercase">No matching records found.</td></tr>
+                  ) : (
+                    filteredSeries.map((item, index) => (
+                      <tr key={item._id} className="hover:bg-blue-50/50 transition-colors group">
+                        <td className="px-6 py-5 font-mono text-xs text-slate-400">
+                          {String(index + 1).padStart(2, '0')}
+                        </td>
+                        <td className="px-6 py-5">
+                          <p className="text-sm font-bold text-slate-800 uppercase tracking-tight group-hover:text-[#1e3a8a]">{item.title}</p>
+                          <p className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">{item.description || "No official description provided."}</p>
+                        </td>
+                        <td className="px-6 py-5">
+                          <p className="text-xs font-black text-slate-900">{formatMoney(item.price)}</p>
+                          {item.originalPrice > item.price && (
+                            <p className="text-[10px] text-slate-400 line-through">₹{item.originalPrice}</p>
+                          )}
+                        </td>
+                        <td className="px-6 py-5">
+                           <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${item.discount > 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-slate-50 text-slate-400 border-slate-200'}`}>
+                             {item.discount}% OFF
+                           </span>
+                        </td>
+                        <td className="px-6 py-5 text-right relative">
+                          <button
+                            ref={el => buttonRefs.current[item._id] = el}
+                            onClick={() => toggleMenu(item._id)}
+                            className="p-2 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-800 transition-colors"
+                          >
+                            <MoreHorizontal size={18} />
+                          </button>
+
+                          {openMenuId === item._id && (
+                            <div 
+                              ref={el => menuRefs.current[item._id] = el}
+                              className="absolute right-6 top-12 z-50 w-48 bg-white border border-slate-200 rounded shadow-xl py-1 overflow-hidden"
+                            >
+                              {getMenuActions(item).map(action => (
+                                action.to ? (
+                                  <Link key={action.key} to={action.to} className="flex items-center gap-3 px-4 py-2 text-[10px] font-bold uppercase text-slate-600 hover:bg-blue-50 hover:text-[#1e3a8a]">
+                                    <action.icon size={14}/> {action.label}
+                                  </Link>
+                                ) : (
+                                  <button 
+                                    key={action.key} 
+                                    onClick={() => { setDeleteTarget({id: item._id, title: item.title}); setConfirmOpen(true); setOpenMenuId(null); }}
+                                    className="w-full flex items-center gap-3 px-4 py-2 text-[10px] font-bold uppercase text-red-600 hover:bg-red-50"
+                                  >
+                                    <action.icon size={14}/> {action.label}
+                                  </button>
+                                )
+                              ))}
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        
+
+        {/* DELETE MODAL */}
+        {confirmOpen && (
+          <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white border border-slate-200 rounded w-full max-w-md overflow-hidden">
+              <div className="bg-slate-50 px-6 py-3 border-b border-slate-200 flex justify-between items-center">
+                <h3 className="text-xs font-bold text-red-700 uppercase tracking-widest">Authorize Record Deletion</h3>
+                <button onClick={() => setConfirmOpen(false)}><X size={16} className="text-slate-400"/></button>
+              </div>
+              <div className="p-6">
+                <p className="text-xs font-bold text-slate-600 leading-relaxed">
+                  Are you sure you want to permanently remove <span className="text-slate-900 font-black">"{deleteTarget?.title}"</span> from the system archive?
                 </p>
-
-                {!canDelete && (
-                  <p className="mt-3 text-xs font-bold text-red-600">
-                    You don't have permission to delete.
-                  </p>
-                )}
-
-                <div className="mt-6 flex flex-col sm:flex-row gap-3 sm:justify-end">
-                  <button
-                    ref={confirmCancelRef}
-                    onClick={closeConfirm}
-                    disabled={deleteLoading}
-                    className="rounded-xl px-4 py-2.5 font-black text-slate-700 border border-slate-200 hover:bg-slate-50 disabled:opacity-60"
-                  >
-                    Cancel
-                  </button>
-
-                  <button
-                    onClick={confirmDelete}
-                    disabled={!canDelete || deleteLoading}
-                    className="rounded-xl px-4 py-2.5 font-black text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {deleteLoading ? "Deleting..." : "Delete"}
+                <div className="mt-6 flex gap-3">
+                  <button onClick={() => setConfirmOpen(false)} className="flex-1 py-2 rounded border border-slate-300 text-[10px] font-bold uppercase tracking-widest hover:bg-slate-50 transition-colors">Cancel</button>
+                  <button onClick={confirmDelete} disabled={deleteLoading} className="flex-1 py-2 bg-red-600 text-white rounded text-[10px] font-bold uppercase tracking-widest hover:bg-red-700 transition-all shadow-md">
+                    {deleteLoading ? "SYNCING..." : "CONFIRM DELETE"}
                   </button>
                 </div>
-
-                <p className="mt-3 text-[11px] text-slate-400">
-                  Tip: Press <span className="font-black">Esc</span> to close.
-                </p>
               </div>
             </div>
           </div>

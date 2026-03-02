@@ -160,8 +160,8 @@ export default function ExamWindow() {
           image: q.image || null,
 
           questionText: q.questionText || null,
-          assertion: q.assertion || null,
-          reason: q.reason || null,
+          assertion: q.assertion || null, // 🔥 FIXED: was child.assertion
+          reason: q.reason || null,       // 🔥 FIXED: was child.reason
 
           options: q.options || [],
 
@@ -294,6 +294,7 @@ export default function ExamWindow() {
       setLoading(false);
 
     } catch (err) {
+      console.error("Exam Init Error:", err); // Helpful for debugging
       const message =
         err?.response?.data?.message ||
         "Failed to load exam. Please refresh and try again.";
@@ -840,60 +841,51 @@ export default function ExamWindow() {
 
   if (error) {
     return (
-      <div className="h-screen flex items-center justify-center text-red-500">
-        {error}
+      <div className="h-screen flex items-center justify-center text-red-500 px-4 text-center">
+        <div>
+            <p className="text-xl font-bold mb-2">Error Loading Exam</p>
+            <p>{error}</p>
+        </div>
       </div>
     );
   }
 
   return (
     <>
-      {/* ❌ MOBILE BLOCK SCREEN */}
-      <div className="md:hidden fixed inset-0 flex items-center justify-center bg-slate-900 text-white z-50">
-        <div className="text-center px-6">
-          <h2 className="text-2xl font-black mb-4">
-            Desktop Required
-          </h2>
-          <p className="text-sm text-slate-300 leading-relaxed">
-            This exam is not available on small screens.
-            <br />
-            Please open this test on a desktop or laptop
-            in full desktop mode to continue.
-          </p>
-        </div>
-      </div>
-
-      {/* ✅ DESKTOP EXAM WINDOW */}
-      <div className="hidden md:flex fixed inset-0 flex-col bg-[#FDFEFF] font-sans">
+      {/* ✅ MOBILE ACCESSIBLE EXAM WINDOW */}
+      <div className="flex flex-col h-screen bg-[#FDFEFF] font-sans relative overflow-hidden">
 
         {/* 🔐 WATERMARK */}
-        <div className="fixed inset-0 pointer-events-none flex items-center justify-center text-7xl font-black text-gray-400 opacity-20 rotate-[-30deg] select-none z-40 tracking-widest">
+        <div className="fixed inset-0 pointer-events-none flex items-center justify-center text-4xl md:text-7xl font-black text-gray-400 opacity-20 rotate-[-30deg] select-none z-40 tracking-widest text-center px-4">
           {test?.name} • {attemptId}
         </div>
 
         {/* ================= HEADER ================= */}
-        <div className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shadow-sm">
+        <div className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shadow-sm z-30 relative">
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 md:gap-4">
+            {/* Hamburger Menu Button - Works on Mobile Now */}
             <button
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="md:hidden p-2 text-slate-500"
+              onClick={() => setIsSidebarOpen(true)}
+              className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg"
             >
-              ☰
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
             </button>
 
-            <h1 className="font-black text-slate-800 text-lg truncate max-w-[300px]">
+            <h1 className="font-black text-slate-800 text-sm md:text-lg truncate max-w-[150px] md:max-w-[300px]">
               {test?.name}
             </h1>
           </div>
 
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2 md:gap-6">
 
             {/* Language Toggle */}
             <div className="flex bg-slate-100 p-1 rounded-lg">
               <button
                 onClick={() => setLanguage("english")}
-                className={`px-4 py-1 text-xs font-bold rounded-md ${language === "english"
+                className={`px-3 py-1 text-[10px] md:text-xs font-bold rounded-md ${language === "english"
                   ? "bg-white text-blue-600 shadow"
                   : "text-slate-500"
                   }`}
@@ -903,7 +895,7 @@ export default function ExamWindow() {
 
               <button
                 onClick={() => setLanguage("hindi")}
-                className={`px-4 py-1 text-xs font-bold rounded-md ${language === "hindi"
+                className={`px-3 py-1 text-[10px] md:text-xs font-bold rounded-md ${language === "hindi"
                   ? "bg-white text-blue-600 shadow"
                   : "text-slate-500"
                   }`}
@@ -913,7 +905,7 @@ export default function ExamWindow() {
             </div>
 
             {/* Timer */}
-            <div className="px-6 py-2 bg-slate-900 text-white rounded-lg font-mono font-bold">
+            <div className="px-3 md:px-6 py-1.5 md:py-2 bg-slate-900 text-white rounded-lg font-mono font-bold text-xs md:text-sm">
               {formatTime()}
             </div>
           </div>
@@ -921,11 +913,11 @@ export default function ExamWindow() {
 
 
         {/* ================= BODY ================= */}
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1 overflow-hidden relative">
 
-          {/* ===== LEFT SPLIT PANEL ===== */}
+          {/* ===== LEFT SPLIT PANEL (Reference) ===== */}
           {showSplit && currentQuestion && (
-            <div className="w-[45%] hidden md:flex bg-white border-r border-slate-200 flex-col">
+            <div className="hidden md:flex w-[45%] bg-white border-r border-slate-200 flex-col z-20">
 
               <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 text-xs font-black uppercase tracking-wider text-blue-600">
                 Reference
@@ -935,7 +927,7 @@ export default function ExamWindow() {
 
                 {/* Passage */}
                 {currentQuestion.passageText && (
-                  <div className="text-slate-700 leading-relaxed whitespace-pre-line">
+                  <div className="text-slate-700 leading-relaxed whitespace-pre-line text-sm md:text-base">
                     {getTextByLanguage(currentQuestion.passageText, language)}
                   </div>
                 )}
@@ -957,40 +949,83 @@ export default function ExamWindow() {
 
 
           {/* ===== QUESTION PANEL ===== */}
-          <QuestionPanel
-            currentQuestion={currentQuestion}
-            currentIndex={currentIndex}
-            totalQuestions={flatQuestions.length}
-            answersMap={answersMap}
-            language={language}
-            selectOption={selectOption}
-            clearAnswer={clearAnswer}
-            goToNext={goToNext}
-            goToPrevious={goToPrevious}
-            handleSubmit={handleSubmit}
-            toggleReview={toggleReview}   // ✅
-            reviewSet={reviewSet}         // ✅
-          />
+          <div className="flex-1 h-full overflow-y-auto relative z-10">
+             {/* If mobile and showSplit is true, render passage here above question */}
+             {showSplit && currentQuestion && (
+                <div className="md:hidden p-4 bg-slate-50 border-b border-slate-200">
+                   <div className="text-xs font-black uppercase tracking-wider text-blue-600 mb-2">Reference</div>
+                   {currentQuestion.passageText && (
+                      <div className="text-slate-700 text-sm whitespace-pre-line mb-4">
+                        {getTextByLanguage(currentQuestion.passageText, language)}
+                      </div>
+                   )}
+                   {currentQuestion.image && (
+                      <img
+                        src={currentQuestion.image}
+                        alt="Question"
+                        className="max-w-full rounded-lg shadow-sm mb-2"
+                      />
+                   )}
+                </div>
+             )}
+
+            <QuestionPanel
+              currentQuestion={currentQuestion}
+              currentIndex={currentIndex}
+              totalQuestions={flatQuestions.length}
+              answersMap={answersMap}
+              language={language}
+              selectOption={selectOption}
+              clearAnswer={clearAnswer}
+              goToNext={goToNext}
+              goToPrevious={goToPrevious}
+              handleSubmit={handleSubmit}
+              toggleReview={toggleReview}
+              reviewSet={reviewSet}
+            />
+          </div>
 
 
 
 
-          {/* ===== PALETTE ===== */}
+          {/* ===== PALETTE SIDEBAR ===== */}
+          
+          {/* Mobile Overlay */}
+          {isSidebarOpen && (
+             <div 
+                className="fixed inset-0 bg-black/50 z-40 md:hidden"
+                onClick={() => setIsSidebarOpen(false)}
+             ></div>
+          )}
 
-          <Palette
-            flatQuestions={flatQuestions}
-            currentIndex={currentIndex}
-            setCurrentIndex={setCurrentIndex}
-            answersMap={answersMap}
-            visitedSet={visitedSet}
-            reviewSet={reviewSet}
-            handleSubmit={handleSubmit}
-          />
+          <div className={`
+             fixed md:relative inset-y-0 right-0 z-50 
+             bg-white shadow-2xl md:shadow-none
+             transform transition-transform duration-300 ease-in-out
+             border-l border-slate-200
+             w-[85%] md:w-80
+             ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}
+             md:translate-x-0 flex flex-col
+          `}>
+            <Palette
+              flatQuestions={flatQuestions}
+              currentIndex={currentIndex}
+              setCurrentIndex={(index) => {
+                 setCurrentIndex(index);
+                 if(window.innerWidth < 768) setIsSidebarOpen(false); // Auto close on mobile select
+              }}
+              answersMap={answersMap}
+              visitedSet={visitedSet}
+              reviewSet={reviewSet}
+              handleSubmit={handleSubmit}
+              closeSidebar={() => setIsSidebarOpen(false)} // Pass close handler
+            />
+          </div>
 
         </div>
         {showWarning && (
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-sm w-full text-center">
+            <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-sm w-full text-center mx-4">
 
               <div className="text-4xl text-rose-500 mb-4 font-bold">!</div>
 

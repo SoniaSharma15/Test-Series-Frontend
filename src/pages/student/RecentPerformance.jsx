@@ -3,14 +3,9 @@ import axios from "../../services/axiosInstance";
 import StudentSidebar from "../../components/student/StudentSidebar";
 import RecentPerformanceCard from "../../components/student/RecentPerformance";
 import {
-  ArrowLeft,
-  Target,
-  Zap,
-  CheckCircle,
-  XCircle,
-  ListChecks,
-  BookOpen,
-  ClipboardList
+  ArrowLeft, Target, Zap, CheckCircle, XCircle,
+  ListChecks, BookOpen, ClipboardList, Home, 
+  ChevronRight, Printer, Download, UserCheck
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Loader from "../../components/common/Loader";
@@ -24,167 +19,134 @@ export default function RecentPerformance() {
     fetchRecentPerformance();
   }, []);
 
-const fetchRecentPerformance = async () => {
-  try {
-    const res = await axios.get("/attempts/recent-performance");
-
-    if (res.data?.success && res.data?.data) {
-      setMetrics(res.data.data);
-    } else {
+  const fetchRecentPerformance = async () => {
+    try {
+      const res = await axios.get("/attempts/recent-performance");
+      if (res.data?.success && res.data?.data) {
+        setMetrics(res.data.data);
+      } else {
+        setMetrics(null);
+      }
+    } catch (err) {
+      console.error("Failed to fetch recent performance", err);
       setMetrics(null);
+    } finally {
+      setLoading(false);
     }
+  };
 
-  } catch (err) {
-    console.error("Failed to fetch recent performance", err);
-    setMetrics(null);
-  } finally {
-    setLoading(false);
-  }
-};
+  if (loading) return <Loader />;
 
-  /* =========================
-     LOADING STATE
-  ========================== */
-  if (loading) {
-    return <Loader />;
-  }
-
-  /* =========================
-     EMPTY STATE
-  ========================== */
   if (!metrics || Object.keys(metrics).length === 0) {
     return (
-      <div className="flex min-h-screen bg-[#F8FAFC]">
+      <div className="flex min-h-screen bg-[#F1F5F9]">
         <StudentSidebar />
-        <div className="flex-1 flex flex-col items-center justify-center">
-          <div className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm text-center">
-            <ClipboardList className="mx-auto text-slate-200 mb-4" size={48} />
-            <p className="text-slate-400 font-black uppercase tracking-widest">
-              No Recent Attempt Found
+        <div className="flex-1 flex flex-col items-center justify-center p-6">
+          <div className="bg-white p-12 rounded border border-slate-200 shadow-sm text-center max-w-md w-full">
+            <ClipboardList className="mx-auto text-slate-200 mb-6" size={64} />
+            <p className="text-slate-500 font-bold uppercase tracking-widest text-sm">
+              No Official Attempt Records Found
             </p>
+            <button 
+              onClick={() => navigate("/student/my-tests")}
+              className="mt-6 bg-[#1e3a8a] text-white px-6 py-2 rounded text-xs font-bold uppercase"
+            >
+              Go to Examination Portal
+            </button>
           </div>
         </div>
       </div>
     );
   }
 
-  /* =========================
-     SAFE DESTRUCTURING
-  ========================== */
   const {
-    score = 0,
-    timeSpent = 0,
-    attempted = 0,
-    correct = 0,
-    wrong = 0,
-    batchName = "N/A",
-    testName = "N/A"
+    score = 0, timeSpent = 0, attempted = 0,
+    correct = 0, wrong = 0, batchName = "N/A", testName = "N/A"
   } = metrics;
 
-  /* =========================
-     SAFE NUMERIC FORMAT
-  ========================== */
-  const safeScore = Number(score);
-  const formattedScore = !isNaN(safeScore)
-    ? safeScore.toFixed(2)
-    : "0.00";
-
-  const safeTime = Number(timeSpent) || 0;
-  const safeAttempted = Number(attempted) || 0;
-  const safeCorrect = Number(correct) || 0;
-  const safeWrong = Number(wrong) || 0;
-
   return (
-    <div className="flex min-h-screen bg-[#F8FAFC]">
+    <div className="flex min-h-screen bg-[#F1F5F9]">
       <StudentSidebar />
 
-      <main className="flex-1 min-w-0 h-screen overflow-y-auto custom-scrollbar">
-        <div className="max-w-[1200px] mx-auto p-6 md:p-10 space-y-10">
+      <main className="flex-1 min-w-0 h-screen overflow-y-auto">
+        {/* 1. TOP UTILITY BAR (VERY GOV STYLE) */}
+<div className="sticky top-0 z-5 bg-[#355872] text-white px-6 py-6 flex justify-between items-center text-[11px] font-medium">
+  <div className="flex gap-4">
+    <span className="hover:underline cursor-pointer"></span>
+    <span className="hover:underline cursor-pointer"></span>
+  </div>
+  <div className="flex gap-4 items-center">
+    <span>
+      Standard Time: {new Date().toLocaleTimeString()}
+    </span>
+ 
+  </div>
+</div>
+        {/* BREADCRUMBS & HEADER */}
+        <div className="bg-white border-b border-slate-200 px-6 lg:px-10 py-5">
+         
+          
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <h1 className="text-2xl font-bold text-slate-800 uppercase tracking-tight">
+              Candidate <span className="text-[#1e3a8a]">Scorecard Report</span>
+            </h1>
+           
+          </div>
+        </div>
 
-          {/* Header Section */}
-          <header className="space-y-4">
-            <button
-              onClick={() => navigate(-1)}
-              className="group flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-blue-600 transition-colors"
-            >
-              <ArrowLeft
-                size={14}
-                className="group-hover:-translate-x-1 transition-transform"
-              />
-              Go Back
-            </button>
+        <div className="max-w-[1200px] mx-auto p-6 lg:p-10 space-y-6">
 
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-2 bg-blue-600 rounded-full" />
-              <h1 className="text-4xl font-black text-slate-900 tracking-tight">
-                Recent <span className="text-blue-600">Performance</span>
-              </h1>
+          {/* CANDIDATE & BATCH INFO SECTION (REPORT HEADER STYLE) */}
+          <div className="bg-white border border-slate-200 rounded overflow-hidden shadow-sm">
+            <div className="bg-slate-50 px-6 py-3 border-b border-slate-200">
+               <h3 className="text-[11px] font-bold text-slate-800 uppercase flex items-center gap-2">
+                 <UserCheck size={16} className="text-[#1e3a8a]" /> Examination Metadata
+               </h3>
             </div>
-          </header>
-
-          {/* Info Banner */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <InfoCard
-              icon={<BookOpen className="text-blue-600" size={24} />}
-              label="Active Batch"
-              value={batchName}
-              bg="bg-blue-50"
-            />
-
-            <InfoCard
-              icon={<ClipboardList className="text-indigo-600" size={24} />}
-              label="Test Name"
-              value={testName}
-              bg="bg-indigo-50"
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2">
+              <div className="p-6 border-b md:border-b-0 md:border-r border-slate-100 flex items-center gap-4">
+                <div className="bg-blue-50 p-3 rounded text-[#1e3a8a]"><BookOpen size={20}/></div>
+                <div>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Enrolled Scheme / Batch</p>
+                  <p className="text-sm font-bold text-slate-800 uppercase leading-tight">{batchName}</p>
+                </div>
+              </div>
+              <div className="p-6 flex items-center gap-4">
+                <div className="bg-indigo-50 p-3 rounded text-indigo-700"><ClipboardList size={20}/></div>
+                <div>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Examination Nomenclature</p>
+                  <p className="text-sm font-bold text-slate-800 uppercase leading-tight">{testName}</p>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Stats Grid */}
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-            <PerformanceStat
-              label="Score"
-              value={`${formattedScore}%`}
-              icon={<Target size={20} />}
-              color="blue"
-            />
-            <PerformanceStat
-              label="Time"
-              value={`${safeTime}m`}
-              icon={<Zap size={20} />}
-              color="amber"
-            />
-            <PerformanceStat
-              label="Attempted"
-              value={safeAttempted}
-              icon={<ListChecks size={20} />}
-              color="indigo"
-            />
-            <PerformanceStat
-              label="Correct"
-              value={safeCorrect}
-              icon={<CheckCircle size={20} />}
-              color="emerald"
-            />
-            <PerformanceStat
-              label="Wrong"
-              value={safeWrong}
-              icon={<XCircle size={20} />}
-              color="rose"
-            />
+          {/* OFFICIAL PERFORMANCE GRID (DENSE & STRUCTURED) */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <GovStat label="Marks Percentage" value={`${score.toFixed(2)}%`} icon={<Target size={18}/>} color="text-blue-700" bg="bg-blue-50" />
+            <GovStat label="Time Consumed" value={`${timeSpent}m`} icon={<Zap size={18}/>} color="text-amber-700" bg="bg-amber-50" />
+            <GovStat label="Total Attempted" value={attempted} icon={<ListChecks size={18}/>} color="text-slate-700" bg="bg-slate-50" />
+            <GovStat label="Correct Responses" value={correct} icon={<CheckCircle size={18}/>} color="text-emerald-700" bg="bg-emerald-50" />
+            <GovStat label="Wrong Responses" value={wrong} icon={<XCircle size={18}/>} color="text-rose-700" bg="bg-rose-50" />
           </div>
 
-          {/* Chart Section */}
-          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm transition-all hover:shadow-lg">
-            <div className="flex items-center gap-2 mb-8">
-              <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse" />
-              <h3 className="text-sm font-black uppercase tracking-widest text-slate-800">
-                Performance Trend
+          {/* STATISTICAL GRAPH AREA */}
+          <div className="bg-white border border-slate-200 rounded shadow-sm overflow-hidden">
+            <div className="bg-slate-50 px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+              <h3 className="text-xs font-bold text-slate-800 uppercase flex items-center gap-2">
+                <Zap size={16} className="text-blue-700 animate-pulse" /> Performance Analysis Graph
               </h3>
             </div>
+            
+            <div className="p-8">
+              <RecentPerformanceCard lastScore={Number(score)} />
+            </div>
 
-            <RecentPerformanceCard
-              lastScore={Number(formattedScore)}
-            />
+            <div className="bg-slate-50 p-4 border-t border-slate-200">
+               <p className="text-[10px] text-slate-500 font-medium text-center uppercase tracking-widest italic">
+                 Official Computer Generated Scorecard • No Signature Required
+               </p>
+            </div>
           </div>
 
         </div>
@@ -193,54 +155,16 @@ const fetchRecentPerformance = async () => {
   );
 }
 
-/* ========================================
-   Reusable Info Card
-======================================== */
-function InfoCard({ icon, label, value, bg }) {
+/* OFFICIAL UI HELPERS */
+
+function GovStat({ label, value, icon, color, bg }) {
   return (
-    <div className="bg-white border border-slate-200 rounded-[2rem] p-6 flex items-center gap-5 transition-all hover:shadow-md">
-      <div className={`${bg} p-4 rounded-2xl`}>
+    <div className="bg-white border border-slate-200 rounded p-4 flex flex-col items-center justify-center text-center shadow-sm hover:border-[#1e3a8a] transition-colors group">
+      <div className={`${bg} ${color} w-10 h-10 rounded-full flex items-center justify-center mb-3 border border-slate-100`}>
         {icon}
       </div>
-      <div>
-        <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
-          {label}
-        </p>
-        <p className="text-lg font-black text-slate-800 leading-none mt-1">
-          {value || "N/A"}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-/* ========================================
-   Performance Stat Card
-======================================== */
-function PerformanceStat({ label, value, icon, color }) {
-  const themes = {
-    blue: "bg-blue-50 text-blue-600 border-blue-100",
-    amber: "bg-amber-50 text-amber-600 border-amber-100",
-    indigo: "bg-indigo-50 text-indigo-600 border-indigo-100",
-    emerald: "bg-emerald-50 text-emerald-600 border-emerald-100",
-    rose: "bg-rose-50 text-rose-600 border-rose-100"
-  };
-
-  return (
-    <div className="bg-white border border-slate-200 p-6 rounded-[2rem] shadow-sm hover:scale-[1.02] transition-all group">
-      <div
-        className={`${themes[color]} w-12 h-12 rounded-2xl flex items-center justify-center mb-5 border transition-transform group-hover:rotate-6`}
-      >
-        {icon}
-      </div>
-
-      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-        {label}
-      </p>
-
-      <p className="text-3xl font-black text-slate-900 tracking-tighter">
-        {value ?? 0}
-      </p>
+      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-tight mb-1">{label}</p>
+      <p className={`text-xl font-bold ${color} tracking-tight`}>{value}</p>
     </div>
   );
 }

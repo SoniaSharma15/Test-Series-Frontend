@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import StudentSidebar from "../../components/student/StudentSidebar";
 import Loader from "../../components/common/Loader";
+import Leaderboard from "../../components/student/Leaderboard";
 
 export default function GovDashboard() {
   const [data, setData] = useState(null);
@@ -22,19 +23,21 @@ export default function GovDashboard() {
   const [loading, setLoading] = useState(true);
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
-
+const [leaderboard, setLeaderboard] = useState([]);
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
 
-        const [dashboardRes, rankRes] = await Promise.all([
-          axios.get("/student/dashboard"),
-          axios.get("/student/global-rank"),
-        ]);
+ const [dashboardRes, rankRes, leaderboardRes] = await Promise.all([
+  axios.get("/student/dashboard"),
+  axios.get("/student/global-rank"),
+  axios.get("/student/leaderboard"),
+]);
 
-        setData(dashboardRes.data);
-        setGlobalRank(rankRes.data);
+setData(dashboardRes.data);
+setGlobalRank(rankRes.data);
+setLeaderboard(leaderboardRes.data?.leaderboard || []);
       } catch (err) {
         console.error(err);
       } finally {
@@ -65,8 +68,7 @@ export default function GovDashboard() {
   return (
     <div className="flex min-h-screen bg-[#f1f5f9]">
       <StudentSidebar />
-
-      <main className="flex-1 overflow-y-auto h-screen">
+        <main className="flex-1 overflow-y-auto h-screen">
         {/* 1. TOP UTILITY BAR (VERY GOV STYLE) */}
         <div className="sticky top-0 z-5 bg-[#355872] text-white px-6 py-6 flex justify-between items-center text-[11px] font-medium">
           <div className="flex gap-4">
@@ -135,7 +137,6 @@ export default function GovDashboard() {
               color="bg-[#7AAACE]"
             />
           </div>
-
           {/* DATA TABLES (RESPONSIVE) */}
           <div className="bg-white rounded border border-slate-200 shadow-sm overflow-hidden">
             <div className="bg-[#f8fafc] px-4 md:px-6 py-4 border-b border-slate-200 flex justify-between items-center">
@@ -158,12 +159,14 @@ export default function GovDashboard() {
                 </thead>
 
                 <tbody className="divide-y divide-slate-100">
-                  {data.enrolledSeries.length === 0 && (
-                    <div className="p-4 bg-gray-100 border border-gray-300 rounded-lg text-center text-gray-600 font-medium tracking-widest">
-                      🚫 No Active Batches
-                    </div>
-                  )}
-                  {data?.enrolledSeries?.map((series) => (
+               {data?.enrolledSeries?.length === 0 ? (
+  <tr>
+    <td colSpan="4" className="px-6 py-8 text-center text-slate-500 font-medium">
+      🚫 No Active Batches
+    </td>
+  </tr>
+) : (
+  data?.enrolledSeries?.map((series) => (
                     <tr
                       key={series._id}
                       className="hover:bg-blue-50/50 transition-colors"
@@ -208,8 +211,9 @@ export default function GovDashboard() {
                         </button>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
+                  ))
+)}
+                                 </tbody>
               </table>
             </div>
 
@@ -259,7 +263,9 @@ export default function GovDashboard() {
               ))}
             </div>
           </div>
+        <Leaderboard leaderboard={leaderboard} currentUserId={user?._id} />
         </div>
+
       </main>
     </div>
   );

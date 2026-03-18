@@ -41,7 +41,8 @@ export default function CreateTestSeries() {
   const [previewUrl, setPreviewUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(isEdit);
-
+const [coverFile, setCoverFile] = useState(null);
+const [coverPreview, setCoverPreview] = useState("");
   useEffect(() => {
     if (!isEdit) return;
     (async () => {
@@ -60,7 +61,8 @@ export default function CreateTestSeries() {
           features: Array.isArray(data.features) ? data.features : [],
           subjects: Array.isArray(data.subjects) ? data.subjects : [],
         });
-        if (data.thumbnail) setPreviewUrl(data.thumbnail);
+        if (data?.thumbnail) setPreviewUrl(data?.thumbnail);
+          if (data?.coverImage) setCoverPreview(data?.coverImage);
 } catch (err) {
   toast.error("Failed to load test series ❌");
 } finally {
@@ -76,7 +78,13 @@ export default function CreateTestSeries() {
       setPreviewUrl(URL.createObjectURL(file));
     }
   };
-
+const handleCoverChange = (e) => {
+  const file = e.target.files[0];
+  if (file) {
+    setCoverFile(file);
+    setCoverPreview(URL.createObjectURL(file));
+  }
+};
   const addTag = (field, input, setInput) => {
     const v = input.trim();
     if (!v || form[field].includes(v)) return;
@@ -121,7 +129,7 @@ const handleSubmit = async (e) => {
 
   try {
     setSubmitting(true);
-
+ 
     loadingToast = toast.loading(
       isEdit ? "Updating test series..." : "Creating test series..."
     );
@@ -139,6 +147,9 @@ const handleSubmit = async (e) => {
     if (thumbnailFile) {
       formData.append("thumbnail", thumbnailFile);
     }
+   if (coverFile) {
+  formData.append("coverImage", coverFile);
+}
 
     if (isEdit) {
       await axios.put(`/test-series/${id}`, formData);
@@ -327,6 +338,47 @@ const handleSubmit = async (e) => {
                   ))}
                 </div>
               </section>
+                 {/* Parameters */}
+              <section className="bg-white p-5 sm:p-6 rounded-[1.75rem] border border-slate-200/60 shadow-sm space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="bg-indigo-50 p-2 rounded-xl text-indigo-600">
+                    <Clock size={18} />
+                  </div>
+                  <h3 className="font-black text-slate-800 uppercase tracking-widest text-xs sm:text-sm">
+                    Parameters
+                  </h3>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                      type="number"
+                      value={form.duration}
+                      onChange={handleChange("duration")}
+                      placeholder="Days"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold outline-none"
+                      required
+                    />
+                    <input
+                      value={form.language}
+                      onChange={handleChange("language")}
+                      placeholder="Lang"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold outline-none"
+                      required
+                    />
+                  </div>
+
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={form.startDate}
+                    onChange={handleChange("startDate")}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold outline-none"
+                  />
+                </div>
+              </section>
             </div>
 
             {/* RIGHT COLUMN */}
@@ -376,6 +428,7 @@ const handleSubmit = async (e) => {
                     />
                   </div>
                 </div>
+                
               </section>
 
               {/* Thumbnail */}
@@ -406,48 +459,45 @@ const handleSubmit = async (e) => {
                   </div>
                 ) : null}
               </section>
+{/* Cover Image */}
+<section className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-5 sm:p-6 rounded-[1.75rem] text-white space-y-4 shadow-xl">
+  <div className="flex items-center gap-3">
+    <UploadCloud size={20} className="text-purple-400" />
+    <h3 className="font-black uppercase tracking-widest text-xs sm:text-sm">
+      Cover Image
+    </h3>
+  </div>
 
-              {/* Parameters */}
-              <section className="bg-white p-5 sm:p-6 rounded-[1.75rem] border border-slate-200/60 shadow-sm space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="bg-indigo-50 p-2 rounded-xl text-indigo-600">
-                    <Clock size={18} />
-                  </div>
-                  <h3 className="font-black text-slate-800 uppercase tracking-widest text-xs sm:text-sm">
-                    Parameters
-                  </h3>
-                </div>
+  <div className="relative group cursor-pointer border-2 border-dashed border-white/20 rounded-2xl p-6 hover:border-purple-400 transition-all text-center">
+    <input
+      type="file"
+      onChange={handleCoverChange}
+      className="absolute inset-0 opacity-0 cursor-pointer"
+      accept="image/*"
+    />
 
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <input
-                      type="number"
-                      value={form.duration}
-                      onChange={handleChange("duration")}
-                      placeholder="Days"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold outline-none"
-                      required
-                    />
-                    <input
-                      value={form.language}
-                      onChange={handleChange("language")}
-                      placeholder="Lang"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold outline-none"
-                      required
-                    />
-                  </div>
+    <div className="flex flex-col items-center gap-2">
+      <UploadCloud className="text-slate-400 group-hover:text-purple-400 transition-all" size={30} />
+      <p className="text-[10px] font-black uppercase tracking-wider">
+        Upload Cover Banner
+      </p>
+      <span className="text-[9px] text-slate-400">
+        Recommended: 16:9 Ratio
+      </span>
+    </div>
+  </div>
 
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">
-                    Start Date
-                  </label>
-                  <input
-                    type="date"
-                    value={form.startDate}
-                    onChange={handleChange("startDate")}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold outline-none"
-                  />
-                </div>
-              </section>
+  {coverPreview && (
+    <div className="rounded-xl overflow-hidden border border-white/10 shadow-2xl">
+      <img
+        src={coverPreview}
+        alt="Cover Preview"
+        className="w-full h-40 object-cover"
+      />
+    </div>
+  )}
+</section>
+           
             </div>
           </form>
         </div>

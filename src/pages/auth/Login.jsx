@@ -49,10 +49,10 @@ export default function Login() {
       {/* HEADER SECTION */}
       <div className="w-full max-w-[850px] flex flex-col md:flex-row justify-between items-center mb-6 px-2">
         <div className="flex items-center gap-4">
-          <img src={logo} alt="The Brilliant Bihar" className="h-14 lg:h-20 w-auto object-contain bg-white p-1 rounded border shadow-sm" />
+          <img src={logo} alt="Test Series Portal" className="h-14 lg:h-20 w-auto object-contain bg-white p-1 rounded border shadow-sm" />
           <div className="text-left">
             <h1 className="text-xl lg:text-2xl font-black text-slate-800 uppercase tracking-tighter">
-              The Brilliant <span className="text-[#1e3a8a]">Bihar</span>
+              Test Series <span className="text-[#1e3a8a]">Portal</span>
             </h1>
             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Digital Examination & Test Series Portal</p>
           </div>
@@ -124,7 +124,7 @@ export default function Login() {
 
               <button
                 type="button"
-                onClick={() => window.location.href = "https://thebrilliantbihar.com"}
+                onClick={() => window.location.href = "/"}
                 className="w-full bg-white text-slate-600 border border-slate-300 py-3 font-bold text-[10px] uppercase tracking-widest hover:bg-slate-50 hover:text-[#1e3a8a] hover:border-[#1e3a8a] transition-all flex items-center justify-center gap-2"
               >
                 <Home size={14} /> Return to Homepage
@@ -171,7 +171,7 @@ export default function Login() {
 
       {/* FOOTER */}
       <div className="mt-8 flex items-center gap-4 text-slate-400">
-        <p className="text-[10px] font-bold uppercase tracking-widest">© 2026 The Brilliant Bihar</p>
+        <p className="text-[10px] font-bold uppercase tracking-widest">© 2026 Test Series Portal</p>
       </div>
     </div>
   );

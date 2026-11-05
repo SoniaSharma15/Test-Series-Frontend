@@ -141,7 +141,7 @@ export default function AttemptTest() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-700 to-blue-900 text-white px-6 py-4 flex justify-between items-center sticky top-0 z-50">
-        <h1 className="text-xl font-bold">{test.name || "THE BRILLIANT BIHAR: PRELIMS 2026"}</h1>
+        <h1 className="text-xl font-bold">{test.name || "PRELIMS 2026"}</h1>
         <div className="bg-red-500 text-white px-4 py-2 rounded-lg font-bold text-lg">
           TIME LEFT: {formatTime(timeLeft)}
         </div>

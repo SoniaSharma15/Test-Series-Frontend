@@ -2,7 +2,17 @@ import { useEffect, useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "../../services/axiosInstance";
 import { AuthContext } from "../../context/AuthContext";
-import { BookOpen, FileText, ExternalLink } from "lucide-react";
+import {
+  Home,
+  BookOpen,
+  FileText,
+  User,
+  Bell,
+  Search,
+  ExternalLink,
+  ChevronRight,
+  LogOut,
+} from "lucide-react";
 import StudentSidebar from "../../components/student/StudentSidebar";
 import Loader from "../../components/common/Loader";
 import Leaderboard from "../../components/student/Leaderboard";
@@ -10,26 +20,24 @@ import Leaderboard from "../../components/student/Leaderboard";
 export default function GovDashboard() {
   const [data, setData] = useState(null);
   const [globalRank, setGlobalRank] = useState(null);
-  const [leaderboard, setLeaderboard] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  const { user } = useContext(AuthContext);
+  const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
-
+const [leaderboard, setLeaderboard] = useState([]);
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
 
-        const [dashboardRes, rankRes, leaderboardRes] = await Promise.all([
-          axios.get("/student/dashboard"),
-          axios.get("/student/global-rank"),
-          axios.get("/student/leaderboard"),
-        ]);
+ const [dashboardRes, rankRes, leaderboardRes] = await Promise.all([
+  axios.get("/student/dashboard"),
+  axios.get("/student/global-rank"),
+  axios.get("/student/leaderboard"),
+]);
 
-        setData(dashboardRes.data);
-        setGlobalRank(rankRes.data);
-        setLeaderboard(leaderboardRes.data?.leaderboard || []);
+setData(dashboardRes.data);
+setGlobalRank(rankRes.data);
+setLeaderboard(leaderboardRes.data?.leaderboard || []);
       } catch (err) {
         console.error(err);
       } finally {
@@ -39,14 +47,29 @@ export default function GovDashboard() {
 
     loadData();
   }, []);
-
+  //   const fetchDashboard = async () => {
+  //     try {
+  //       setLoading(true);
+  //       const res = await axios.get("/student/dashboard");
+  //       setData(res.data);
+  //     } catch (err) { console.error(err); }
+  //     finally { setLoading(false); }
+  //   };
+  // const fetchGlobalRank = async () => {
+  //   try {
+  //     const res = await axios.get("/student/global-rank");
+  //     setGlobalRank(res.data);
+  //   } catch (err) {
+  //     console.error("Global rank fetch error:", err);
+  //   }
+  // };
   if (loading) return <Loader />;
 
   return (
     <div className="flex min-h-screen bg-[#f1f5f9]">
       <StudentSidebar />
-
-      <main className="flex-1 overflow-y-auto h-screen">
+        <main className="flex-1 overflow-y-auto h-screen">
+        {/* 1. TOP UTILITY BAR (VERY GOV STYLE) */}
         <div className="sticky top-0 z-5 bg-[#355872] text-white px-6 py-6 flex justify-between items-center text-[11px] font-medium">
           <div className="flex gap-4">
             <span className="hover:underline cursor-pointer"></span>
@@ -56,10 +79,10 @@ export default function GovDashboard() {
             <span>Standard Time: {new Date().toLocaleTimeString()}</span>
           </div>
         </div>
-
-        <div className="bg-white border-b border-slate-200 px-6 py-4 flex flex-col md:flex-row md:items-center justify-between">
+        {/* 2. SUB-HEADER / BREADCRUMBS */}
+        <div className="bg-white border-b border-slate-200 px-6 py-4 flex flex-col md:flex-row md:items-center justify-between ">
           <div>
-            <h1 className="text-2xl font-bold text-slate-600 tracking-tight">
+            <h1 className="text-2xl font-bold text-slate-600  tracking-tight">
               Welcome, {user?.name}
             </h1>
           </div>
@@ -74,7 +97,9 @@ export default function GovDashboard() {
           </div>
         </div>
 
+        {/* 3. MAIN CONTENT AREA */}
         <div className="max-w-[1200px] mx-auto p-6 space-y-6">
+          {/* ANNOUNCEMENT SCROLLER */}
           <div className="bg-white border-l-4 border-red-600 shadow-sm p-3 flex items-center gap-4">
             <span className="bg-red-600 text-white px-2 py-0.5 text-[10px] font-bold rounded animate-pulse">
               LATEST
@@ -85,6 +110,7 @@ export default function GovDashboard() {
             </marquee>
           </div>
 
+          {/* METRIC TILES (FLAT GOV STYLE) */}
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <GovStat
               label="Enrolled Courses"
@@ -111,7 +137,7 @@ export default function GovDashboard() {
               color="bg-[#7AAACE]"
             />
           </div>
-
+          {/* DATA TABLES (RESPONSIVE) */}
           <div className="bg-white rounded border border-slate-200 shadow-sm overflow-hidden">
             <div className="bg-[#f8fafc] px-4 md:px-6 py-4 border-b border-slate-200 flex justify-between items-center">
               <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm md:text-base">
@@ -120,6 +146,7 @@ export default function GovDashboard() {
               </h3>
             </div>
 
+            {/* DESKTOP TABLE */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
@@ -132,121 +159,119 @@ export default function GovDashboard() {
                 </thead>
 
                 <tbody className="divide-y divide-slate-100">
-                  {data?.enrolledSeries?.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan="4"
-                        className="px-6 py-8 text-center text-slate-500 font-medium"
-                      >
-                        🚫 No Active Batches
+               {data?.enrolledSeries?.length === 0 ? (
+  <tr>
+    <td colSpan="4" className="px-6 py-8 text-center text-slate-500 font-medium">
+      🚫 No Active Batches
+    </td>
+  </tr>
+) : (
+  data?.enrolledSeries?.map((series) => (
+                    <tr
+                      key={series._id}
+                      className="hover:bg-blue-50/50 transition-colors"
+                    >
+                      <td className="px-6 py-4">
+                        <p className="font-bold text-slate-800">
+                          {series.title}
+                        </p>
+                        <p className="text-[10px] text-slate-400">
+                          ID: {series._id.substring(0, 8)}
+                        </p>
+                      </td>
+
+                      <td className="px-6 py-4">
+                        <div className="w-24 bg-slate-100 h-1.5 rounded-full overflow-hidden mb-1">
+                          <div
+                            className="bg-blue-600 h-full"
+                            style={{ width: `${series.progress || 0}%` }}
+                          />
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-500">
+                          {series.progress || 0}% Complete
+                        </span>
+                      </td>
+
+                      <td className="px-6 py-4 text-xs font-medium text-slate-600">
+                        {series.expiryDate
+                          ? new Date(series.expiryDate).toLocaleDateString(
+                              "en-GB",
+                            )
+                          : "Lifetime"}
+                      </td>
+
+                      <td className="px-6 py-4 text-center">
+                        <button
+                          onClick={() =>
+                            navigate(`/student/my-tests?series=${series._id}`)
+                          }
+                          className="text-blue-700 hover:text-blue-900 font-bold text-xs flex items-center gap-1 justify-center mx-auto uppercase"
+                        >
+                          Access <ExternalLink size={12} />
+                        </button>
                       </td>
                     </tr>
-                  ) : (
-                    data?.enrolledSeries?.map((series) => (
-                      <tr
-                        key={series._id}
-                        className="hover:bg-blue-50/50 transition-colors"
-                      >
-                        <td className="px-6 py-4">
-                          <p className="font-bold text-slate-800">{series.title}</p>
-                          <p className="text-[10px] text-slate-400">
-                            ID: {series._id.substring(0, 8)}
-                          </p>
-                        </td>
-
-                        <td className="px-6 py-4">
-                          <div className="w-24 bg-slate-100 h-1.5 rounded-full overflow-hidden mb-1">
-                            <div
-                              className="bg-blue-600 h-full"
-                              style={{ width: `${series.progress || 0}%` }}
-                            />
-                          </div>
-                          <span className="text-[10px] font-bold text-slate-500">
-                            {series.progress || 0}% Complete
-                          </span>
-                        </td>
-
-                        <td className="px-6 py-4 text-xs font-medium text-slate-600">
-                          {series.expiryDate
-                            ? new Date(series.expiryDate).toLocaleDateString("en-GB")
-                            : "Lifetime"}
-                        </td>
-
-                        <td className="px-6 py-4 text-center">
-                          <button
-                            onClick={() =>
-                              navigate(`/student/my-tests?series=${series._id}`)
-                            }
-                            className="text-blue-700 hover:text-blue-900 font-bold text-xs flex items-center gap-1 justify-center mx-auto uppercase"
-                          >
-                            Access <ExternalLink size={12} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
+                  ))
+)}
+                                 </tbody>
               </table>
             </div>
 
+            {/* MOBILE CARD VIEW */}
             <div className="md:hidden p-4 space-y-4">
-              {data?.enrolledSeries?.length === 0 ? (
-                <div className="border rounded-xl p-4 text-center text-slate-500 font-medium bg-white">
-                  🚫 No Active Batches
-                </div>
-              ) : (
-                data?.enrolledSeries?.map((series) => (
-                  <div
-                    key={series._id}
-                    className="border rounded-xl p-4 shadow-sm bg-white"
-                  >
-                    <p className="font-bold text-slate-800 text-sm">
-                      {series.title}
-                    </p>
+              {data?.enrolledSeries?.map((series) => (
+                <div
+                  key={series._id}
+                  className="border rounded-xl p-4 shadow-sm bg-white"
+                >
+                  <p className="font-bold text-slate-800 text-sm">
+                    {series.title}
+                  </p>
 
-                    <p className="text-[10px] text-slate-400 mb-2">
-                      ID: {series._id.substring(0, 8)}
-                    </p>
+                  <p className="text-[10px] text-slate-400 mb-2">
+                    ID: {series._id.substring(0, 8)}
+                  </p>
 
-                    <div className="mb-2">
-                      <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                        <div
-                          className="bg-blue-600 h-full"
-                          style={{ width: `${series.progress || 0}%` }}
-                        />
-                      </div>
-                      <span className="text-[10px] font-bold text-slate-500">
-                        {series.progress || 0}% Complete
-                      </span>
+                  <div className="mb-2">
+                    <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                      <div
+                        className="bg-blue-600 h-full"
+                        style={{ width: `${series.progress || 0}%` }}
+                      />
                     </div>
-
-                    <p className="text-xs text-slate-600 mb-3">
-                      Valid Upto:{" "}
-                      {series.expiryDate
-                        ? new Date(series.expiryDate).toLocaleDateString("en-GB")
-                        : "Lifetime"}
-                    </p>
-
-                    <button
-                      onClick={() =>
-                        navigate(`/student/my-tests?series=${series._id}`)
-                      }
-                      className="w-full bg-blue-600 text-white py-2 rounded-lg text-[11px] font-bold uppercase"
-                    >
-                      Access Batch
-                    </button>
+                    <span className="text-[10px] font-bold text-slate-500">
+                      {series.progress || 0}% Complete
+                    </span>
                   </div>
-                ))
-              )}
+
+                  <p className="text-xs text-slate-600 mb-3">
+                    Valid Upto:{" "}
+                    {series.expiryDate
+                      ? new Date(series.expiryDate).toLocaleDateString("en-GB")
+                      : "Lifetime"}
+                  </p>
+
+                  <button
+                    onClick={() =>
+                      navigate(`/student/my-tests?series=${series._id}`)
+                    }
+                    className="w-full bg-blue-600 text-white py-2 rounded-lg text-[11px] font-bold uppercase"
+                  >
+                    Access Batch
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
-
-          <Leaderboard leaderboard={leaderboard} currentUserId={user?._id} />
+        <Leaderboard leaderboard={leaderboard} currentUserId={user?._id} />
         </div>
+
       </main>
     </div>
   );
 }
+
+/* ================= HELPERS ================= */
 
 function GovStat({ label, value, color }) {
   return (

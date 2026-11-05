@@ -52,8 +52,8 @@ const [coverPreview, setCoverPreview] = useState("");
         setForm({
           title: data.title || "",
           description: data.description || "",
-          price: data.price || "",
-          originalPrice: data.originalPrice || "",
+          price: data.price ?? "",
+          originalPrice: data.originalPrice ?? data.price ?? "",
           discount: data.discount || "",
           duration: data.duration || "",
           startDate: data.startDate ? data.startDate.split("T")[0] : "",
@@ -61,8 +61,9 @@ const [coverPreview, setCoverPreview] = useState("");
           features: Array.isArray(data.features) ? data.features : [],
           subjects: Array.isArray(data.subjects) ? data.subjects : [],
         });
-        if (data?.thumbnail) setPreviewUrl(data?.thumbnail);
-          if (data?.coverImage) setCoverPreview(data?.coverImage);
+          if (data?.thumbnail?.url) setPreviewUrl(data.thumbnail.url);
+      if (data?.coverImage?.url) setCoverPreview(data.coverImage.url);
+
 } catch (err) {
   toast.error("Failed to load test series ❌");
 } finally {
@@ -104,7 +105,7 @@ useEffect(() => {
   if (discount > 100) discount = 100;
   if (discount < 0) discount = 0;
 
-  if (!isNaN(mrp) && mrp > 0) {
+  if (form.originalPrice !== "" && Number.isFinite(mrp) && mrp >= 0) {
     const sellingPrice = mrp - (mrp * discount) / 100;
 
     setForm((prev) => ({
@@ -124,6 +125,11 @@ useEffect(() => {
 
 const handleSubmit = async (e) => {
   e.preventDefault();
+
+  if (!Number.isFinite(Number(form.price)) || Number(form.price) < 0) {
+    toast.error("Selling price must be zero or greater. Enter an MRP and discount.");
+    return;
+  }
 
   let loadingToast;
 
@@ -410,17 +416,25 @@ const handleSubmit = async (e) => {
                       required
                     />
                   </div>
+                  <p className="text-xs font-semibold text-slate-500">
+                    Enter ₹0 as the MRP or apply a 100% discount to create a free series.
+                  </p>
 
                   <div className="grid grid-cols-2 gap-3">
                     <input
                       type="number"
+                      min="0"
                       value={form.originalPrice}
                       onChange={handleChange("originalPrice")}
                       placeholder="MRP"
                       className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold text-slate-500 outline-none"
+                      required
                     />
                     <input
                       type="number"
+                      min="0"
+                      max="100"
+                      step="0.01"
                       value={form.discount}
                       onChange={handleChange("discount")}
                       placeholder="Disc %"

@@ -10,6 +10,7 @@ import {
   Calendar,
   BadgeCheck,
   BadgeDollarSign,
+  Gift,
   X,
 } from "lucide-react";
 import AdminSidebar from "../../components/admin/AdminSidebar";
@@ -36,7 +37,7 @@ export default function Enrollments() {
 
   // filters
   const [statusFilter, setStatusFilter] = useState("all"); // all|active|cancelled|refunded
-  const [sourceFilter, setSourceFilter] = useState("all"); // all|admin|payment
+  const [sourceFilter, setSourceFilter] = useState("all"); // all|admin|payment|free
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 450);
 
@@ -135,6 +136,9 @@ export default function Enrollments() {
       setSourceFilter("payment");
       return;
     }
+    if (kind === "free") {
+      setSourceFilter("free");
+    }
   };
 
   return (
@@ -205,6 +209,14 @@ export default function Enrollments() {
               onClick={() => onCardClick("payment")}
               active={sourceFilter === "payment"}
             />
+            <StatSmallCard
+              label="Free Enrollments"
+              value={getSourceCount("free")}
+              icon={<Gift size={20} />}
+              color="emerald"
+              onClick={() => onCardClick("free")}
+              active={sourceFilter === "free"}
+            />
           </div>
 
           {/* Filters & Table Card */}
@@ -260,6 +272,7 @@ export default function Enrollments() {
                     <option value="all">All Sources</option>
                     <option value="admin">Admin</option>
                     <option value="payment">Payment</option>
+                    <option value="free">Free</option>
                   </select>
                 </div>
 

@@ -26,6 +26,13 @@ export default function TestSeriesCard({ series }) {
 
     try {
       setProcessing(true);
+      if (Number(series.price) === 0) {
+        await axios.post("/payment/free-enroll", { testSeriesId: series._id });
+        toast.success("Free enrollment successful 🎉");
+        navigate("/student/my-tests");
+        return;
+      }
+
       if (!window.Razorpay) {
         toast.error("Payment gateway not loaded.");
         return;
@@ -41,7 +48,7 @@ export default function TestSeriesCard({ series }) {
         key,
         amount,
         order_id: orderId,
-        name: "The Brilliant Bihar",
+        name: "Test Series Portal",
         description: series.title,
         handler: async function (response) {
           try {
@@ -57,7 +64,7 @@ export default function TestSeriesCard({ series }) {
 
       new window.Razorpay(options).open();
     } catch (error) {
-      toast.error("Failed to initiate enrollment.");
+      toast.error(error.response?.data?.message || "Failed to initiate enrollment.");
     } finally {
       setProcessing(false);
     }
@@ -146,9 +153,11 @@ export default function TestSeriesCard({ series }) {
                 <span className="text-sm text-slate-400 line-through">₹{series.originalPrice}</span>
               )}
             </div>
-            <div className="bg-red-50 text-red-600 text-[9px] font-bold px-2 py-1 rounded border border-red-100">
-              + 18% GST
-            </div>
+            {Number(series.price) > 0 && (
+              <div className="bg-red-50 text-red-600 text-[9px] font-bold px-2 py-1 rounded border border-red-100">
+                + 18% GST
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -170,7 +179,7 @@ export default function TestSeriesCard({ series }) {
               {series.isEnrolled ? (
                 <><CheckCircle size={14} /> Enrolled</>
               ) : (
-                <><Zap size={14} className="fill-current" /> Enroll Now</>
+                <><Zap size={14} className="fill-current" /> {Number(series.price) === 0 ? "Enroll Free" : "Enroll Now"}</>
               )}
             </button>
           </div>

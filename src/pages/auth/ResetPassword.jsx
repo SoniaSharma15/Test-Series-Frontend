@@ -92,10 +92,10 @@ export default function ResetPassword() {
       {/* --- EXAM PORTAL HEADER --- */}
       <div className="w-full max-w-[900px] flex flex-col md:flex-row justify-between items-center mb-6 px-2 gap-4 md:gap-0">
         <div className="flex items-center gap-3 md:gap-4">
-          <img src={logo} alt="The Brilliant Bihar" className="h-12 md:h-20 w-auto object-contain bg-white p-1 rounded border shadow-sm" />
+          <img src={logo} alt="Test Series Portal" className="h-12 md:h-20 w-auto object-contain bg-white p-1 rounded border shadow-sm" />
           <div className="text-left">
             <h1 className="text-lg md:text-2xl font-black text-slate-800 uppercase tracking-tighter leading-none">
-              The Brilliant <span className="text-[#1e3a8a]">Bihar</span>
+              Test Series <span className="text-[#1e3a8a]">Portal</span>
             </h1>
             <p className="text-[8px] md:text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Credential Management System</p>
           </div>
@@ -211,7 +211,7 @@ export default function ResetPassword() {
 
               <button
                 type="button"
-                onClick={() => window.location.replace("https://thebrilliantbihar.com")}
+                onClick={() => window.location.replace("/")}
                 className="w-full bg-white text-slate-600 border border-slate-300 py-3 rounded-sm font-bold text-[9px] md:text-[10px] uppercase tracking-widest hover:bg-slate-50 hover:text-[#1e3a8a] transition-all flex items-center justify-center gap-2"
               >
                 <Home size={14} /> Return to Homepage
@@ -256,7 +256,7 @@ export default function ResetPassword() {
       {/* FOOTER */}
       <div className="mt-8 flex flex-col md:flex-row items-center gap-4 md:gap-6 text-slate-400 text-center">
         <div className="hidden md:block h-4 w-px bg-slate-300"></div>
-        <p className="text-[9px] font-bold uppercase tracking-widest">© 2026 The Brilliant Bihar • Secure Portal</p>
+        <p className="text-[9px] font-bold uppercase tracking-widest">© 2026 Test Series Portal • Secure Portal</p>
       </div>
     </div>
   );

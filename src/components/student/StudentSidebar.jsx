@@ -98,7 +98,7 @@ export default function StudentSidebar() {
               </div>
               <div className="flex flex-col">
                 <span className="text-sm font-bold text-[#1e3a8a] leading-none tracking-tight">
-                  THE BRILLIANT BIHAR
+                  TEST SERIES PORTAL
                 </span>
                 <span className="text-[14px] font-medium text-slate-500  tracking-tighter">
                   Student Portal

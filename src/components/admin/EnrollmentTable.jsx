@@ -91,7 +91,7 @@ export default function EnrollmentTable({ enrollments = [], getStatusBadge }) {
                     {/* Source */}
                     <td className="px-6 py-4">
                       <span className="inline-flex items-center gap-2 text-sm font-bold text-slate-700">
-                        {source === "admin" ? (
+                        {source === "admin" || source === "free" ? (
                           <BadgeCheck size={16} className="text-slate-400" />
                         ) : (
                           <BadgeDollarSign size={16} className="text-slate-400" />

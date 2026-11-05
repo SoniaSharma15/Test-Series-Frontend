@@ -49,6 +49,13 @@ export default function TestSeriesDetails() {
 
     try {
       setProcessing(true);
+      if (Number(series?.price) === 0) {
+        await axios.post("/payment/free-enroll", { testSeriesId: series._id });
+        toast.success("Free enrollment successful 🎉");
+        navigate("/student/my-tests");
+        return;
+      }
+
       if (!window.Razorpay) {
         toast.error("Payment gateway not loaded.");
         return;
@@ -63,7 +70,7 @@ export default function TestSeriesDetails() {
         key,
         amount,
         order_id: orderId,
-        name: "Brilliant Bihar",
+        name: "Test Series Portal",
         description: series.title,
         handler: async function (response) {
           const verifyToast = toast.loading("Verifying transaction...");
@@ -81,7 +88,7 @@ export default function TestSeriesDetails() {
       };
       new window.Razorpay(options).open();
     } catch (error) {
-      toast.error("Enrollment failed.");
+      toast.error(error.response?.data?.message || "Enrollment failed.");
     } finally {
       setProcessing(false);
     }
@@ -232,12 +239,15 @@ export default function TestSeriesDetails() {
                       <span className="text-sm text-slate-400 line-through">₹{series.originalPrice}</span>
                     )}
                   </div>
-                  <p className="text-[10px] font-bold text-emerald-600 mt-1">INC. OF ALL APPLICABLE GOVT. TAXES</p>
+                  <p className="text-[10px] font-bold text-emerald-600 mt-1">
+                    {Number(series.price) === 0 ? "FREE ENROLLMENT" : "INC. OF ALL APPLICABLE GOVT. TAXES"}
+                  </p>
                 </div>
 
                 <div className="space-y-4 mb-8 bg-slate-50 p-4 rounded border border-slate-100">
                   <div className="flex items-center gap-3 text-[11px] font-bold text-slate-600">
-                    <ShieldCheck className="text-[#1e3a8a]" size={16} /> SECURE PAYMENT GATEWAY
+                    <ShieldCheck className="text-[#1e3a8a]" size={16} />
+                    {Number(series.price) === 0 ? "NO PAYMENT REQUIRED" : "SECURE PAYMENT GATEWAY"}
                   </div>
                   <div className="flex items-center gap-3 text-[11px] font-bold text-slate-600">
                     <Users className="text-[#1e3a8a]" size={16} /> 5,000+ TOTAL CANDIDATES
@@ -253,7 +263,7 @@ export default function TestSeriesDetails() {
                       : "bg-[#1e3a8a] text-white hover:bg-blue-900 shadow-lg shadow-blue-100"
                     }`}
                 >
-                  {processing ? "PROCESSING..." : series.isEnrolled ? "ENROLLED" : "CONFIRM ENROLMENT"}
+                  {processing ? "PROCESSING..." : series.isEnrolled ? "ENROLLED" : Number(series.price) === 0 ? "ENROLL FOR FREE" : "CONFIRM ENROLMENT"}
                 </button>
               </div>
 

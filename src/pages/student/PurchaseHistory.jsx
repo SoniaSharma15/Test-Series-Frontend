@@ -276,7 +276,7 @@ export default function PurchaseHistory() {
           
           <div className="text-center pb-10">
             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] italic">
-              Automated Digital Financial Ledger • Brilliant Bihar Official Portal
+              Automated Digital Financial Ledger • Official Portal
             </p>
           </div>
         </div>

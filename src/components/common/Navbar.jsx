@@ -41,7 +41,7 @@ export default function Navbar() {
           </div>
           <div className="hidden sm:block">
             <h3 className="text-base font-black text-slate-800 leading-tight tracking-tight">
-              TheBrilliantBihar
+              Test Series Portal
             </h3>
             <span className="text-[9px] uppercase tracking-[0.2em] font-black text-indigo-500/80 block -mt-0.5">
               Test Series

@@ -10,6 +10,7 @@ import ConfirmDialog from "../../components/ui/ConfirmDialog";
 import PageHeader from "./questions/PageHeader";
 import QuestionForm from "./questions/QuestionForm";
 import QuestionsLibrary from "./questions/QuestionLibrary";
+import PDFQuestionImport from "./questions/PDFQuestionImport";
 
 
 /* =========================================================
@@ -559,6 +560,8 @@ window.scrollTo({ top: 0, behavior: "smooth" });
   langMode={langMode}
   setLangMode={setLangMode}
 />
+
+<PDFQuestionImport testId={testId} onImportComplete={fetchQuestions} />
 
 {/* ---------------- FORM SECTION  ---------------- */}
 <QuestionForm

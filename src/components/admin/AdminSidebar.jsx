@@ -49,7 +49,7 @@ export default function AdminSidebar() {
         <div className="flex items-center gap-2">
           <ShieldCheck size={20} />
           <div>
-            <p className="text-[10px] font-bold uppercase">Brilliant Bihar</p>
+            <p className="text-[10px] font-bold uppercase">Test Series Portal</p>
             <p className="text-[8px] opacity-70 uppercase">Admin Console</p>
           </div>
         </div>
@@ -89,7 +89,7 @@ export default function AdminSidebar() {
             </div>
             <div>
               <p className="text-sm font-bold text-[#1e3a8a] uppercase">
-                Brilliant Bihar
+                Test Series Portal
               </p>
               <p className="text-[10px] text-slate-400 uppercase">
                 Admin Panel

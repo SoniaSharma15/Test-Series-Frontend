@@ -5,7 +5,7 @@ import { AuthContext } from "../../context/AuthContext";
 import toast from "react-hot-toast";
 import {
   Zap, Globe, Calendar, Clock, ChevronDown,
-  CheckCircle, Star
+  CheckCircle, Star, ArrowRight
 } from "lucide-react";
 
 export default function TestSeriesCard({ series }) {
@@ -22,47 +22,17 @@ export default function TestSeriesCard({ series }) {
       navigate("/login");
       return;
     }
-    if (series.isEnrolled || processing) return;
+    if (series.isEnrolled) {
+      navigate("/student/my-tests");
+      return;
+    }
+    if (processing) return;
 
     try {
       setProcessing(true);
-      if (Number(series.price) === 0) {
-        await axios.post("/payment/free-enroll", { testSeriesId: series._id });
-        toast.success("Free enrollment successful 🎉");
-        navigate("/student/my-tests");
-        return;
-      }
-
-      if (!window.Razorpay) {
-        toast.error("Payment gateway not loaded.");
-        return;
-      }
-
-      const loadingToast = toast.loading("Connecting...");
-      const orderRes = await axios.post("/payment/create-order", { testSeriesId: series._id });
-      toast.dismiss(loadingToast);
-
-      const { key, amount, orderId } = orderRes.data?.data || orderRes.data;
-
-      const options = {
-        key,
-        amount,
-        order_id: orderId,
-        name: "Test Series Portal",
-        description: series.title,
-        handler: async function (response) {
-          try {
-            await axios.post("/payment/verify", { ...response, testSeriesId: series._id });
-            toast.success("Enrollment Successful 🎉");
-            navigate("/student/my-tests");
-          } catch (err) {
-            toast.error("Verification failed");
-          }
-        },
-        theme: { color: "#2563eb" }
-      };
-
-      new window.Razorpay(options).open();
+      await axios.post("/enrollments/free", { testSeriesId: series._id });
+      toast.success("Free enrollment successful 🎉");
+      navigate("/student/my-tests");
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to initiate enrollment.");
     } finally {
@@ -93,12 +63,10 @@ export default function TestSeriesCard({ series }) {
           <Star size={10} className="fill-yellow-400 text-yellow-400" /> {rating}
         </div>
 
-        {/* Discount Ribbon (Bottom Left) */}
-        {series.discount > 0 && (
-          <div className="absolute bottom-4 left-0 bg-[#00d084] text-white text-[10px] font-bold px-3 py-1 uppercase shadow-md">
-            {series.discount}% OFF
-          </div>
-        )}
+        {/* Free Tag (Bottom Left) */}
+        <div className="absolute bottom-4 left-0 bg-emerald-600 text-white text-[10px] font-bold px-3 py-1 uppercase shadow-md">
+          FREE ACCESS
+        </div>
       </div>
 
       {/* 2. Content Area */}
@@ -133,7 +101,7 @@ export default function TestSeriesCard({ series }) {
           <div className="flex items-center gap-1.5 shrink-0">
             <Calendar size={15} className="text-blue-600" />
             <span className="text-xs font-semibold">
-              {series.startDate ? new Date(series.startDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : "10 Mar 2026"}
+              {series.startDate ? new Date(series.startDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : "Batch Active"}
             </span>
           </div>
           <div className="w-[1px] h-3 bg-slate-300 shrink-0" />
@@ -143,21 +111,15 @@ export default function TestSeriesCard({ series }) {
           </div>
         </div>
 
-    
         {/* 5. Footer (Price & Actions) */}
         <div className="mt-auto pt-4 border-t border-slate-50">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-black text-slate-900">₹{series.price}</span>
-              {series.originalPrice && (
-                <span className="text-sm text-slate-400 line-through">₹{series.originalPrice}</span>
-              )}
+              <span className="text-2xl font-black text-emerald-600">FREE</span>
             </div>
-            {Number(series.price) > 0 && (
-              <div className="bg-red-50 text-red-600 text-[9px] font-bold px-2 py-1 rounded border border-red-100">
-                + 18% GST
-              </div>
-            )}
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+              Full Access
+            </span>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -169,17 +131,17 @@ export default function TestSeriesCard({ series }) {
             </button>
             <button
               onClick={handleEnroll}
-              disabled={series.isEnrolled || processing}
+              disabled={processing}
               className={`py-3 rounded-xl font-bold text-[11px] uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-2
                 ${series.isEnrolled 
-                  ? "bg-emerald-500 text-white cursor-not-allowed shadow-none" 
+                  ? "bg-emerald-600 text-white hover:bg-emerald-700 shadow-md shadow-emerald-100" 
                   : "bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-100"
                 }`}
             >
               {series.isEnrolled ? (
-                <><CheckCircle size={14} /> Enrolled</>
+                <><CheckCircle size={14} /> Go to Batch <ArrowRight size={12} /></>
               ) : (
-                <><Zap size={14} className="fill-current" /> {Number(series.price) === 0 ? "Enroll Free" : "Enroll Now"}</>
+                <><Zap size={14} className="fill-current" /> Enroll Free</>
               )}
             </button>
           </div>

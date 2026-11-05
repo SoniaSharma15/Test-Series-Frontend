@@ -49,44 +49,9 @@ export default function TestSeriesDetails() {
 
     try {
       setProcessing(true);
-      if (Number(series?.price) === 0) {
-        await axios.post("/payment/free-enroll", { testSeriesId: series._id });
-        toast.success("Free enrollment successful 🎉");
-        navigate("/student/my-tests");
-        return;
-      }
-
-      if (!window.Razorpay) {
-        toast.error("Payment gateway not loaded.");
-        return;
-      }
-      const loadingToast = toast.loading("Initializing secure payment...");
-      const orderRes = await axios.post("/payment/create-order", { testSeriesId: series._id });
-      toast.dismiss(loadingToast);
-
-      const { key, amount, orderId } = orderRes.data?.data || orderRes.data;
-
-      const options = {
-        key,
-        amount,
-        order_id: orderId,
-        name: "Test Series Portal",
-        description: series.title,
-        handler: async function (response) {
-          const verifyToast = toast.loading("Verifying transaction...");
-          try {
-            await axios.post("/payment/verify", { ...response, testSeriesId: series._id });
-            toast.dismiss(verifyToast);
-            toast.success("Enrollment Successful 🎉");
-            navigate("/student/my-tests");
-          } catch (err) {
-            toast.dismiss(verifyToast);
-            toast.error("Verification failed ❌");
-          }
-        },
-        theme: { color: "#1e3a8a" }
-      };
-      new window.Razorpay(options).open();
+      await axios.post("/enrollments/free", { testSeriesId: series._id });
+      toast.success("Free enrollment successful 🎉");
+      navigate("/student/my-tests");
     } catch (error) {
       toast.error(error.response?.data?.message || "Enrollment failed.");
     } finally {
@@ -228,26 +193,23 @@ export default function TestSeriesDetails() {
             <aside className="lg:col-span-4 sticky top-6 space-y-6">
               <div className="bg-white border border-slate-200 rounded p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-6">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">ENROLMENT FEE</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">COURSE ACCESS</span>
                   <Tag size={18} className="text-slate-300" />
                 </div>
 
                 <div className="mb-8">
                   <div className="flex items-baseline gap-2">
-                    <span className="text-4xl font-bold text-slate-900">₹{series.price}</span>
-                    {series.originalPrice && (
-                      <span className="text-sm text-slate-400 line-through">₹{series.originalPrice}</span>
-                    )}
+                    <span className="text-4xl font-bold text-emerald-600">FREE</span>
                   </div>
                   <p className="text-[10px] font-bold text-emerald-600 mt-1">
-                    {Number(series.price) === 0 ? "FREE ENROLLMENT" : "INC. OF ALL APPLICABLE GOVT. TAXES"}
+                    FREE ENROLLMENT
                   </p>
                 </div>
 
                 <div className="space-y-4 mb-8 bg-slate-50 p-4 rounded border border-slate-100">
                   <div className="flex items-center gap-3 text-[11px] font-bold text-slate-600">
                     <ShieldCheck className="text-[#1e3a8a]" size={16} />
-                    {Number(series.price) === 0 ? "NO PAYMENT REQUIRED" : "SECURE PAYMENT GATEWAY"}
+                    NO PAYMENT REQUIRED
                   </div>
                   <div className="flex items-center gap-3 text-[11px] font-bold text-slate-600">
                     <Users className="text-[#1e3a8a]" size={16} /> 5,000+ TOTAL CANDIDATES
@@ -256,14 +218,14 @@ export default function TestSeriesDetails() {
 
                 <button
                   onClick={handleEnroll}
-                  disabled={processing || series.isEnrolled}
+                  disabled={processing}
                   className={`w-full py-4 rounded font-bold text-xs uppercase tracking-widest transition-all
                     ${series.isEnrolled
                       ? "bg-emerald-600 text-white cursor-default"
                       : "bg-[#1e3a8a] text-white hover:bg-blue-900 shadow-lg shadow-blue-100"
                     }`}
                 >
-                  {processing ? "PROCESSING..." : series.isEnrolled ? "ENROLLED" : Number(series.price) === 0 ? "ENROLL FOR FREE" : "CONFIRM ENROLMENT"}
+                  {processing ? "PROCESSING..." : series.isEnrolled ? "GO TO ACTIVE BATCH" : "ENROLL FOR FREE"}
                 </button>
               </div>
 

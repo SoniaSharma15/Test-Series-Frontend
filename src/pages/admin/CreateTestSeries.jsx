@@ -7,7 +7,6 @@ import AdminSidebar from "../../components/admin/AdminSidebar";
 import {
   X,
   UploadCloud,
-  IndianRupee,
   CheckCircle2,
   Clock,
   Zap,
@@ -25,9 +24,6 @@ export default function CreateTestSeries() {
   const [form, setForm] = useState({
     title: "",
     description: "",
-    price: "",
-    originalPrice: "",
-    discount: "",
     duration: "",
     startDate: "",
     language: "",
@@ -52,9 +48,6 @@ const [coverPreview, setCoverPreview] = useState("");
         setForm({
           title: data.title || "",
           description: data.description || "",
-          price: data.price ?? "",
-          originalPrice: data.originalPrice ?? data.price ?? "",
-          discount: data.discount || "",
           duration: data.duration || "",
           startDate: data.startDate ? data.startDate.split("T")[0] : "",
           language: data.language || "",
@@ -97,39 +90,10 @@ const handleCoverChange = (e) => {
     setForm((prev) => ({ ...prev, [field]: prev[field].filter((_, i) => i !== idx) }));
   };
 
-  /* ================= AUTO PRICE CALCULATION ================= */
-useEffect(() => {
-  const mrp = Number(form.originalPrice);
-  let discount = Number(form.discount);
-
-  if (discount > 100) discount = 100;
-  if (discount < 0) discount = 0;
-
-  if (form.originalPrice !== "" && Number.isFinite(mrp) && mrp >= 0) {
-    const sellingPrice = mrp - (mrp * discount) / 100;
-
-    setForm((prev) => ({
-      ...prev,
-      discount,
-      price: Math.round(sellingPrice), // ✅ Rounded
-    }));
-  } else {
-    setForm((prev) => ({
-      ...prev,
-      price: "",
-    }));
-  }
-}, [form.originalPrice, form.discount]);
-
   const handleChange = (key) => (e) => setForm((p) => ({ ...p, [key]: e.target.value }));
 
 const handleSubmit = async (e) => {
   e.preventDefault();
-
-  if (!Number.isFinite(Number(form.price)) || Number(form.price) < 0) {
-    toast.error("Selling price must be zero or greater. Enter an MRP and discount.");
-    return;
-  }
 
   let loadingToast;
 
@@ -149,6 +113,7 @@ const handleSubmit = async (e) => {
         formData.append(key, form[key]);
       }
     });
+    formData.append("price", "0");
 
     if (thumbnailFile) {
       formData.append("thumbnail", thumbnailFile);
@@ -389,60 +354,20 @@ const handleSubmit = async (e) => {
 
             {/* RIGHT COLUMN */}
             <div className="lg:col-span-4 space-y-5">
-              {/* Economics */}
+              {/* Course access */}
               <section className="bg-white p-5 sm:p-6 rounded-[1.75rem] border border-slate-200/60 shadow-sm space-y-4">
                 <div className="flex items-center gap-3">
-                  <div className="bg-amber-50 p-2 rounded-xl text-amber-600">
-                    <IndianRupee size={18} />
+                  <div className="bg-emerald-50 p-2 rounded-xl text-emerald-600">
+                    <CheckCircle2 size={18} />
                   </div>
                   <h3 className="font-black text-slate-800 uppercase tracking-widest text-xs sm:text-sm">
-                    Economics
+                    Free Course Access
                   </h3>
                 </div>
 
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">
-                    Selling Price
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₹</span>
-                    <input
-                      type="number"
-                      value={form.price}
-                      onChange={handleChange("price")}
-                      disabled
-                      readOnly
-                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-10 pr-4 py-3.5 text-lg font-black text-slate-900 outline-none"
-                      required
-                    />
-                  </div>
-                  <p className="text-xs font-semibold text-slate-500">
-                    Enter ₹0 as the MRP or apply a 100% discount to create a free series.
-                  </p>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <input
-                      type="number"
-                      min="0"
-                      value={form.originalPrice}
-                      onChange={handleChange("originalPrice")}
-                      placeholder="MRP"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold text-slate-500 outline-none"
-                      required
-                    />
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.01"
-                      value={form.discount}
-                      onChange={handleChange("discount")}
-                      placeholder="Disc %"
-                      className="w-full bg-blue-50 border border-blue-100 rounded-2xl px-4 py-3 text-sm font-black text-blue-600 outline-none"
-                    />
-                  </div>
-                </div>
-                
+                <p className="text-sm font-semibold text-slate-500">
+                  Every course is free to enroll in. Students can access the course without payment.
+                </p>
               </section>
 
               {/* Thumbnail */}

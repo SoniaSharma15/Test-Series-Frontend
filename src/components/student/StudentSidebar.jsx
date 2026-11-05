@@ -6,7 +6,6 @@ import {
   BookOpen,
   ClipboardList,
   BarChart2,
-  ShoppingBag,
   Menu,
   X,
   ChevronRight,
@@ -37,7 +36,6 @@ export default function StudentSidebar() {
     { to: "/student/results", icon: ClipboardList, label: "My Results" },
     { to: "/student/performance", icon: BarChart2, label: "Performance" },
     { to: "/student/recent-performance", icon: TrendingUp, label: "Recent Scores" },
-    { to: "/student/purchase-history", icon: ShoppingBag, label: "Transaction History" },
   ];
 
   const linkClass = ({ isActive }) =>

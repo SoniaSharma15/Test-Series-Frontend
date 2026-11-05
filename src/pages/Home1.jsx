@@ -44,8 +44,8 @@ export default function TestSeriesCardImageStyle1() {
     }
   };
 
-  const handleEnroll = (link) => {
-    window.location.href = link || "https://your-enrollment-link.com";
+  const handleEnroll = () => {
+    window.location.href = "/login";
   };
 
   if (loading) return (
@@ -75,11 +75,6 @@ export default function TestSeriesCardImageStyle1() {
                 <Star size={10} className="fill-yellow-400 text-yellow-400" /> 4.8
               </div>
 
-              {series.discount > 0 && (
-                <div className="absolute bottom-3 left-3 bg-[#4ade80] text-white px-2 py-1 rounded text-[10px] font-black uppercase tracking-tight">
-                  {series.discount}% OFF
-                </div>
-              )}
             </div>
 
             <div className="p-5 flex flex-col flex-1">
@@ -121,13 +116,10 @@ export default function TestSeriesCardImageStyle1() {
               <div className="mt-auto">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-baseline gap-2">
-                    <span className="text-[26px] font-black text-slate-900">₹{series.price}</span>
-                    {series.originalPrice && (
-                      <span className="text-xs font-bold text-slate-300 line-through">₹{series.originalPrice}</span>
-                    )}
+                    <span className="text-[26px] font-black text-emerald-600">FREE</span>
                   </div>
-                  <div className="bg-red-50 text-red-500 px-2 py-0.5 rounded text-[10px] font-black border border-red-100">
-                    +18% GST
+                  <div className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded text-[10px] font-black border border-emerald-100">
+                    FREE ACCESS
                   </div>
                 </div>
 
@@ -139,10 +131,10 @@ export default function TestSeriesCardImageStyle1() {
                     <Info size={14} /> Details
                   </button>
                   <button
-                    onClick={() => handleEnroll(series.enrollLink)}
+                    onClick={handleEnroll}
                     className="flex-[1.6] py-3 rounded-lg bg-blue-600 text-white font-bold text-[11px] uppercase flex items-center justify-center gap-2 shadow-lg shadow-blue-100 hover:bg-blue-700 transition-colors"
                   >
-                    <Zap size={14} className="fill-white" /> Enroll
+                    <Zap size={14} className="fill-white" /> Enroll Free
                   </button>
                 </div>
               </div>
@@ -213,13 +205,13 @@ export default function TestSeriesCardImageStyle1() {
                   <div className="pt-8 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-6">
                     <div className="text-center md:text-left">
                         <span className="text-[10px] font-black text-slate-400 uppercase">Grand Total</span>
-                        <div className="text-4xl font-black text-slate-900">₹{activeSeries.price}</div>
+                        <div className="text-4xl font-black text-emerald-600">FREE</div>
                     </div>
                     <button 
-                      onClick={() => handleEnroll(activeSeries.enrollLink)}
+                      onClick={handleEnroll}
                       className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white px-10 py-4 rounded-xl font-black uppercase text-xs tracking-widest transition-all flex items-center justify-center gap-2 shadow-xl shadow-blue-100"
                     >
-                      Complete Enrollment <ChevronRight size={18}/>
+                      Enroll Free <ChevronRight size={18}/>
                     </button>
                   </div>
                 </div>

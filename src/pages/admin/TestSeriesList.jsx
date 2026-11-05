@@ -30,11 +30,6 @@ function useDebounce(value, delay = 350) {
   return deb;
 }
 
-function formatMoney(n) {
-  const num = Number(n || 0);
-  return `₹${Number.isFinite(num) ? num.toLocaleString("en-IN") : "0"}`;
-}
-
 export default function TestSeriesList() {
   const hasFetched = useRef(false);
   const { user } = useContext(AuthContext) || {};
@@ -196,8 +191,8 @@ export default function TestSeriesList() {
                   <tr className="bg-white text-slate-500 text-[10px] font-bold uppercase tracking-widest border-b border-slate-100">
                     <th className="px-6 py-4">S.No.</th>
                     <th className="px-6 py-4">Nomenclature / Description</th>
-                    <th className="px-6 py-4">Base Pricing</th>
-                    <th className="px-6 py-4">Rebate (%)</th>
+                    <th className="px-6 py-4">Enrollment</th>
+                    <th className="px-6 py-4">Access</th>
                     <th className="px-6 py-4 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -217,14 +212,11 @@ export default function TestSeriesList() {
                           <p className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">{item.description || "No official description provided."}</p>
                         </td>
                         <td className="px-6 py-5">
-                          <p className="text-xs font-black text-slate-900">{formatMoney(item.price)}</p>
-                          {item.originalPrice > item.price && (
-                            <p className="text-[10px] text-slate-400 line-through">₹{item.originalPrice}</p>
-                          )}
+                          <p className="text-xs font-black text-emerald-700">FREE</p>
                         </td>
                         <td className="px-6 py-5">
-                           <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${item.discount > 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-slate-50 text-slate-400 border-slate-200'}`}>
-                             {item.discount}% OFF
+                           <span className="px-2 py-0.5 rounded text-[10px] font-bold border bg-emerald-50 text-emerald-700 border-emerald-100">
+                             FREE ACCESS
                            </span>
                         </td>
                         <td className="px-6 py-5 text-right relative">

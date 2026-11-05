@@ -17,7 +17,6 @@ import StudentDashboard from "./pages/student/Dashboard";
 import AllTestSeries from "./pages/student/AllTestSeries";
 import MyTests from "./pages/student/MyTests";
 import Performance from "./pages/student/Performance";
-import PurchaseHistory from "./pages/student/PurchaseHistory";
 import Enrollment from "./pages/admin/Enrollments";
 import CreateTest from "./pages/admin/CreateTest";
 import Users from "./pages/admin/Users";
@@ -211,16 +210,6 @@ function App() {
           element={
             <ProtectedRoute role="student">
               <RecentPerformance />
-            </ProtectedRoute>
-          }
-        />
-
-
-        <Route
-          path="/student/purchase-history"
-          element={
-            <ProtectedRoute role="student">
-              <PurchaseHistory />
             </ProtectedRoute>
           }
         />

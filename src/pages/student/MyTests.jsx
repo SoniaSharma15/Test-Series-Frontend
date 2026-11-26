@@ -158,29 +158,29 @@ export default function MyTests() {
                               <td className="px-6 py-5">
                                 {testItem.alreadyAttempted ? (
                                   <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 uppercase">
-                                    <FileCheck size={12} /> Attempted
+                                    <FileCheck size={12} /> Attempt {testItem.attemptCount}/{testItem.maxAttempts}
                                   </span>
                                 ) : (
                                   <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 uppercase">
-                                    <Clock size={12} /> Pending
+                                    <Clock size={12} /> {testItem.attemptCount}/{testItem.maxAttempts} Attempts
                                   </span>
                                 )}
                               </td>
 
                               <td className="px-6 py-5 text-right">
-                                {testItem.alreadyAttempted ? (
+                                {testItem.attemptsRemaining <= 0 ? (
                                   <button
                                     disabled
                                     className="text-slate-300 text-[10px] font-bold uppercase tracking-widest cursor-not-allowed"
                                   >
-                                    Access Locked
+                                    Attempt Limit Reached
                                   </button>
                                 ) : (
                                   <Link
                                     to={`/student/attempt/${testItem.test._id}`}
                                     className="inline-flex items-center gap-1 text-[#1e3a8a] hover:text-blue-900 text-[10px] font-black uppercase tracking-widest"
                                   >
-                                    Start Test <ExternalLink size={12} />
+                                    {testItem.attemptCount > 0 ? "Reattempt Test" : "Start Test"} <ExternalLink size={12} />
                                   </Link>
                                 )}
                               </td>
@@ -209,11 +209,11 @@ export default function MyTests() {
 
                             {testItem.alreadyAttempted ? (
                               <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
-                                Attempted
+                                Attempt {testItem.attemptCount}/{testItem.maxAttempts}
                               </span>
                             ) : (
                               <span className="text-[9px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
-                                Pending
+                                {testItem.attemptCount}/{testItem.maxAttempts} Attempts
                               </span>
                             )}
                           </div>
@@ -225,19 +225,19 @@ export default function MyTests() {
                             </span>
                           </div>
 
-                          {testItem.alreadyAttempted ? (
+                          {testItem.attemptsRemaining <= 0 ? (
                             <button
                               disabled
                               className="w-full py-2 rounded-lg bg-slate-100 text-slate-400 text-[10px] font-bold uppercase"
                             >
-                              Access Locked
+                              Attempt Limit Reached
                             </button>
                           ) : (
                             <Link
                               to={`/student/attempt/${testItem.test._id}`}
                               className="block w-full text-center py-2 rounded-lg bg-blue-600 text-white text-[10px] font-bold uppercase tracking-widest"
                             >
-                              Start Module
+                              {testItem.attemptCount > 0 ? "Reattempt Module" : "Start Module"}
                             </Link>
                           )}
                         </div>

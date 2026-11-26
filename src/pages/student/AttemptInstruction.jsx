@@ -109,7 +109,10 @@ export default function AttemptInstruction() {
       const res = await axios.post("/attempts/start", { testId });
       navigate(`/student/exam/${res.data.attemptId}`);
     } catch (err) {
-      setError("System failed to initialize the examination node.");
+      setError(
+        err.response?.data?.message ||
+          "System failed to initialize the examination node."
+      );
       setLoading(false);
       setCountdown(null);
     }
